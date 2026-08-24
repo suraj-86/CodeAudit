@@ -10,7 +10,9 @@ The purpose is to prevent feature creep and keep implementation aligned with the
 
 ### 2.1 Source-Code Upload
 
-Users can upload supported source-code files.
+Users can upload supported source-code files without authentication.
+
+The upload workflow shall support both individual submissions and classroom-sized batches.
 
 Requirements include:
 
@@ -19,7 +21,35 @@ Requirements include:
 - configurable maximum number of files;
 - total upload-size protection;
 - safe filename handling;
-- rejection of unsupported formats.
+- rejection of unsupported formats;
+- selected-language validation;
+- rejection of files that do not match the selected language;
+- rejection of mixed-language batches.
+
+The initial supported languages are:
+
+- Python;
+- C;
+- C++;
+- Java;
+- JavaScript;
+- TypeScript.
+
+For each upload request, the user selects one programming language.
+
+Every file in that request must be compatible with the selected language.
+
+V1 upload limits are:
+
+- maximum individual file size: 1 MB;
+- maximum files per request: 100;
+- maximum aggregate source-file size: 100 MB.
+
+The aggregate limit scales with the number of uploaded files while remaining subject to the 100 MB maximum.
+
+If any file violates the upload policy, the complete upload request shall be rejected rather than partially accepted.
+
+Client-provided filenames are treated as metadata and must not be used directly as filesystem paths.
 
 ### 2.2 Two-File Comparison
 

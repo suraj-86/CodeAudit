@@ -4,11 +4,55 @@
 
 ### FR-01: File Upload
 
-The system shall allow users to upload supported source-code files.
+The system shall allow anonymous users to upload supported source-code files without requiring login, signup, authentication, or user roles.
+
+The upload workflow shall support both individual submissions and classroom-sized batches.
+
+The initial supported languages are:
+
+- Python
+- C
+- C++
+- Java
+- JavaScript
+- TypeScript
+
+The user shall select a programming language for each upload request.
+
+One upload request shall contain files belonging to one selected programming language.
 
 ### FR-02: File Validation
 
-The system shall validate extension, language support, file size, number of files, and total request size before analysis.
+The system shall validate every uploaded file before analysis.
+
+Validation shall include:
+
+- supported file extension;
+- compatibility with the selected programming language;
+- maximum individual file size;
+- maximum number of files;
+- aggregate source-file size;
+- safe filename handling.
+
+The maximum individual source-file size shall be 1 MB.
+
+The maximum number of files in one upload request shall be 100.
+
+The maximum aggregate source-file size shall be 100 MB.
+
+The aggregate capacity shall therefore scale with the number of uploaded files, while never exceeding the 100 MB request maximum.
+
+A file whose extension is unsupported shall be rejected.
+
+A file whose extension does not correspond to the selected language shall be rejected.
+
+Mixed-language batches shall be rejected.
+
+If any file violates the upload policy, the complete upload request shall be rejected rather than partially accepted.
+
+Client-provided filenames shall be treated as metadata only and shall never be used directly as filesystem paths.
+
+Validation shall occur before expensive analysis operations.
 
 ### FR-03: Exact Hashing
 
@@ -95,6 +139,14 @@ The API shall use rate limiting, with stricter limits for expensive parsing, bat
 ### NFR-03: Resource Limits
 
 The system shall enforce configurable limits for file size, request size, batch size, execution time, memory where enforceable, and analysis workload.
+
+For V1 source-code uploads:
+
+- individual file size shall be limited to 1 MB;
+- upload batch size shall be limited to 100 files;
+- aggregate source-file size shall be limited to 100 MB per request.
+
+The limits shall be centralized so they can be changed without modifying unrelated upload or analysis logic.
 
 ### NFR-04: No Unnecessary Persistence
 

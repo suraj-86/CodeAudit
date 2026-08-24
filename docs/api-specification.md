@@ -53,7 +53,83 @@ Example:
 
 Execution support may differ from parsing support.
 
-## 5. Pairwise Analysis
+## 5. Source-Code Upload
+
+### POST /api/uploads
+
+Accepts one or more source-code files for validation and temporary processing.
+
+V1 does not require authentication.
+
+The request must use `multipart/form-data`.
+
+### Multipart fields
+
+The request shall contain:
+
+- `language` — required selected programming language;
+- `files` — one or more source-code files.
+
+The `language` field must contain one of the supported language identifiers returned by `GET /api/languages`.
+
+One upload request represents one programming language. Mixed-language batches are not permitted.
+
+### Upload limits
+
+The endpoint shall enforce:
+
+- maximum individual file size: 1 MB;
+- maximum files per request: 100;
+- maximum aggregate source-file size: 100 MB.
+
+The aggregate limit applies to the combined source-file sizes in the request.
+
+### Validation
+
+Every uploaded file shall be validated before it enters an analysis workflow.
+
+Validation shall include:
+
+- supported file extension;
+- compatibility with the selected language;
+- individual file size;
+- total upload size;
+- maximum file count;
+- safe filename handling.
+
+If any file fails validation, the complete upload request shall be rejected rather than partially accepted.
+
+Client-provided filenames are metadata only and must never be interpreted as filesystem paths.
+
+### Successful response
+
+A successful upload validation response should return metadata about the accepted files without returning their source contents.
+
+Example:
+
+```json
+{
+  "status": "accepted",
+  "language": "cpp",
+  "fileCount": 3,
+  "totalSizeBytes": 4821,
+  "files": [
+    {
+      "name": "student01.cpp",
+      "sizeBytes": 1510
+    },
+    {
+      "name": "student02.cpp",
+      "sizeBytes": 1692
+    },
+    {
+      "name": "student03.cpp",
+      "sizeBytes": 1619
+    }
+  ]
+}
+
+## 6. Pairwise Analysis
 
 ### POST /api/analyze/compare
 
@@ -90,7 +166,7 @@ Response concept:
 
 The exact response schema will be finalized during implementation.
 
-## 6. Batch Analysis
+## 7. Batch Analysis
 
 ### POST /api/analyze/batch
 
@@ -106,7 +182,7 @@ comparisons are required.
 
 The endpoint must enforce a configurable maximum batch size.
 
-## 7. Reference Analysis
+## 8. Reference Analysis
 
 ### POST /api/analyze/reference
 
@@ -117,7 +193,7 @@ Accepts:
 
 The response should distinguish reference similarity from submission-to-submission similarity.
 
-## 8. Testing
+## 9. Testing
 
 ### POST /api/test/run
 
@@ -130,7 +206,7 @@ Accepts:
 
 The endpoint must never execute arbitrary code inside the primary API process.
 
-## 9. AI Analysis
+## 10. AI Analysis
 
 ### POST /api/analyze/ai
 
@@ -150,7 +226,7 @@ The response should normalize provider output:
 
 The actual provider name and schema will be determined later.
 
-## 10. Report Generation
+## 11. Report Generation
 
 ### POST /api/reports
 
@@ -160,7 +236,7 @@ Returns a PDF response or a temporary report reference.
 
 V1 should avoid creating permanent report storage.
 
-## 11. Error Format
+## 12. Error Format
 
 Errors should follow a consistent structure:
 
@@ -174,7 +250,7 @@ Errors should follow a consistent structure:
 }
 ```
 
-## 12. Important Error Cases
+## 13. Important Error Cases
 
 The API should explicitly handle:
 
@@ -183,6 +259,8 @@ The API should explicitly handle:
 - oversized file;
 - too many files;
 - unsupported language;
+- language/extension mismatch;
+- aggregate upload-size exceeded;
 - parser failure;
 - malformed request;
 - invalid test cases;
@@ -194,7 +272,7 @@ The API should explicitly handle:
 - AI provider timeout;
 - report-generation failure.
 
-## 13. Rate Limiting
+## 14. Rate Limiting
 
 At minimum, separate rate-limit policies should be considered for:
 
@@ -207,11 +285,11 @@ At minimum, separate rate-limit policies should be considered for:
 
 Exact limits should be selected after measuring resource consumption.
 
-## 14. API Versioning
+## 15. API Versioning
 
 The API should be structured so that a future `/api/v2` can be introduced without breaking the V1 contract.
 
-## 15. Security
+## 16. Security
 
 No endpoint should assume that uploaded source code is trustworthy.
 

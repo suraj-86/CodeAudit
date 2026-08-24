@@ -2,6 +2,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 
+import uploadRouter from "./routes/upload.routes.js";
+
 dotenv.config();
 
 const app = express();
@@ -17,6 +19,8 @@ app.get("/api/health", (_req, res) => {
     service: "CodeAudit API",
   });
 });
+
+app.use("/api", uploadRouter);
 
 app.listen(port, () => {
   console.log(`CodeAudit API running on http://localhost:${port}`);

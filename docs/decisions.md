@@ -108,3 +108,31 @@ Any material architectural or scope change should:
 **Decision:** V1 will not use a database or Docker as part of the initial foundation.
 
 **Reason:** This stack provides a lightweight, maintainable TypeScript-based foundation suitable for CodeAudit's scope without introducing unnecessary infrastructure.
+
+## Decision 017 — Upload Policy
+
+**Decision:** CodeAudit V1 will enforce the following anonymous upload policy:
+
+- maximum individual source file size: 1 MB;
+- maximum files per upload request: 100;
+- maximum aggregate source-file size per request: 100 MB;
+- aggregate source-file capacity scales with the number of uploaded files, subject to the 100 MB request maximum;
+- one upload request must use one selected programming language;
+- every uploaded file must have an extension supported by the selected language;
+- unsupported extensions are rejected;
+- files whose detected extension does not match the selected language are rejected;
+- mixed-language batches are rejected;
+- client-provided filenames are treated as metadata and must never be used as filesystem paths.
+
+**Initial supported languages:**
+
+- Python
+- C
+- C++
+- Java
+- JavaScript
+- TypeScript
+
+**Reason:** CodeAudit must support practical classroom-sized batch uploads while maintaining predictable resource limits. A 1 MB individual file limit is sufficient for normal programming-test submissions, while allowing up to 100 files supports a typical class-sized batch. Language-specific validation prevents incompatible submissions from entering the analysis pipeline.
+
+The upload policy applies before analysis and is independent of later AST, execution, or AI-analysis capabilities.
