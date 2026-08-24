@@ -5,6 +5,7 @@ import { UPLOAD_LIMITS, SUPPORTED_LANGUAGES } from "../config/limits.js";
 import { upload } from "../config/upload.js";
 import { validateFileLanguage } from "../validation/file-validation.js";
 import { validateTotalUploadSize } from "../validation/upload-validation.js";
+import { uploadRateLimiter } from "../middleware/rate-limit.js";
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.get("/languages", (_req, res) => {
 
 router.post(
   "/uploads",
+  uploadRateLimiter,
   (req, res, next) => {
     upload.array("files", UPLOAD_LIMITS.maxFiles)(
       req,
