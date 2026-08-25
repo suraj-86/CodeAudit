@@ -54,6 +54,29 @@ Client-provided filenames shall be treated as metadata only and shall never be u
 
 Validation shall occur before expensive analysis operations.
 
+### FR-02A: Project ZIP Upload
+
+The system shall support uploading a complete source-code project as a ZIP archive through a dedicated project-ingestion workflow.
+
+The project ZIP workflow shall:
+
+- accept a ZIP archive as an input;
+- inspect the archive before analysis;
+- safely extract files into controlled temporary storage;
+- identify supported source-code files;
+- apply the applicable source-file validation rules;
+- reject unsafe or invalid archive contents;
+- exclude unsupported non-source files according to documented ingestion rules;
+- convert the project into source-file analysis units;
+- pass valid source files into the analysis pipeline;
+- remove temporary extracted data after the analysis lifecycle.
+
+The project ZIP workflow shall not require permanent source-code storage.
+
+The initial V1 implementation shall support direct ZIP upload only.
+
+GitHub/GitLab repository imports are not part of this requirement and remain future possibilities.
+
 ### FR-03: Exact Hashing
 
 The system shall calculate a cryptographic content hash for uploaded files.

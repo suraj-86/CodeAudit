@@ -129,6 +129,66 @@ Example:
   ]
 }
 
+## 5A. Project ZIP Upload
+
+### POST /api/projects/upload
+
+Accepts a complete source-code project as a ZIP archive for temporary project ingestion.
+
+V1 does not require authentication.
+
+The request must use:
+
+`multipart/form-data`
+
+### Multipart fields
+
+The request shall contain:
+
+- `file` — required ZIP archive containing the project source.
+
+### Project ingestion
+
+The endpoint shall:
+
+- validate that the uploaded archive is an acceptable ZIP file;
+- safely inspect archive entries before extraction;
+- prevent unsafe archive paths;
+- extract project contents only into controlled temporary storage;
+- identify supported source-code files;
+- apply applicable source-file validation rules;
+- exclude unsupported non-source files according to documented ingestion rules;
+- reject unsafe or invalid project contents;
+- provide valid source files to the analysis workflow;
+- remove temporary extracted data after the analysis lifecycle.
+
+The ZIP archive itself must not be treated as a source-code file.
+
+### Initial V1 scope
+
+The initial implementation supports direct ZIP upload only.
+
+GitHub/GitLab repository imports are not part of this endpoint.
+
+### Successful response
+
+The successful response should return project metadata and the discovered source-file metadata without returning source contents.
+
+Example:
+
+```json
+{
+  "status": "accepted",
+  "fileCount": 4,
+  "files": [
+    {
+      "name": "src/main.cpp",
+      "language": "cpp",
+      "sizeBytes": 1842
+    }
+  ]
+}
+
 ## 6. Pairwise Analysis
 
 ### POST /api/analyze/compare

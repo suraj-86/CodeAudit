@@ -51,6 +51,28 @@ If any file violates the upload policy, the complete upload request shall be rej
 
 Client-provided filenames are treated as metadata and must not be used directly as filesystem paths.
 
+
+### 2.1A Project ZIP Upload
+
+V1 also supports uploading a complete source-code project as a ZIP archive.
+
+The project ZIP workflow shall:
+
+- accept a project ZIP archive;
+- safely inspect and extract the archive;
+- identify supported source-code files;
+- apply applicable source-file validation rules;
+- reject unsafe or invalid archive contents;
+- exclude unsupported non-source files according to documented ingestion rules;
+- provide valid source files to the analysis pipeline;
+- remove temporary extracted data after the analysis lifecycle.
+
+Project ZIP upload is an ingestion mechanism and does not constitute a separate analysis engine.
+
+The initial V1 implementation supports direct ZIP upload only.
+
+GitHub/GitLab repository imports remain future possibilities.
+
 ### 2.2 Two-File Comparison
 
 The user can select two files and request structural comparison.

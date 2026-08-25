@@ -136,3 +136,32 @@ Any material architectural or scope change should:
 **Reason:** CodeAudit must support practical classroom-sized batch uploads while maintaining predictable resource limits. A 1 MB individual file limit is sufficient for normal programming-test submissions, while allowing up to 100 files supports a typical class-sized batch. Language-specific validation prevents incompatible submissions from entering the analysis pipeline.
 
 The upload policy applies before analysis and is independent of later AST, execution, or AI-analysis capabilities.
+
+## Decision 018 — Whole-Project ZIP Upload
+
+**Decision:** CodeAudit V1 will support uploading a complete source-code project as a ZIP archive through a dedicated project-ingestion workflow.
+
+**Reason:** Many real submissions are organized as complete projects rather than isolated source files. Supporting project archives allows CodeAudit to analyze multi-file submissions while keeping the existing individual-file upload workflow intact.
+
+The project-upload workflow will:
+
+- accept a ZIP archive;
+- safely inspect and extract the archive;
+- identify supported source-code files;
+- apply the existing language and upload-policy rules;
+- exclude unsupported/non-source files according to documented ingestion rules;
+- convert the project into source-file analysis units;
+- pass those files into the existing analysis pipeline;
+- avoid permanent source-code storage in V1.
+
+Project ZIP ingestion is an input mechanism, not a separate analysis engine.
+
+The initial V1 implementation will support direct ZIP upload only. GitHub/GitLab repository imports remain future possibilities.
+
+## Decision 019 — Backend-First Implementation Sequence
+
+**Decision:** CodeAudit development will implement and stabilize backend analysis capabilities before building the corresponding frontend interfaces.
+
+**Reason:** The backend APIs and analysis result models should stabilize before dependent UI work is implemented. This reduces rework while preserving the documented product architecture.
+
+The frontend remains part of V1, but frontend implementation may be deferred until the required backend capabilities are sufficiently stable.

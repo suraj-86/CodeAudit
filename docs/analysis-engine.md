@@ -26,6 +26,29 @@ This is useful because it is:
 
 It does not detect renamed variables, formatting changes, inserted statements, or other transformations.
 
+## 2A. Project Ingestion and Analysis Units
+
+A complete project may be provided as a ZIP archive through the project-ingestion workflow.
+
+Project ingestion is responsible for converting the archive into individual source-file analysis units.
+
+Conceptually:
+
+```text
+Project ZIP
+    ↓
+Safe Extraction
+    ↓
+Source File Discovery
+    ↓
+Validation
+    ↓
+Source File Analysis Units
+    ↓
+Hashing / Structural Analysis / Testing / AI Analysis
+```
+
+
 ## 3. Structural Analysis
 
 The structural engine converts source code into a normalized structural representation.

@@ -73,6 +73,27 @@ Responsibilities:
 - initiate report generation;
 - ensure cleanup.
 
+## 4A. Project Ingestion
+
+Project ZIP uploads use a dedicated ingestion workflow inside the backend.
+
+The conceptual flow is:
+
+```text
+ZIP Upload
+    ↓
+Archive Validation
+    ↓
+Safe Extraction
+    ↓
+Project File Discovery
+    ↓
+Source-Code Validation
+    ↓
+Source File Analysis Units
+    ↓
+Analysis Orchestrator
+
 ## 5. Analysis Orchestrator
 
 The orchestrator coordinates independent engines.

@@ -34,6 +34,16 @@ Instead of manually inspecting every file, the evaluator can upload the relevant
 - an independent AI-analysis indicator, where an external service is available;
 - an optional downloadable report.
 
+### Project-Level Analysis
+
+CodeAudit may also accept a complete source-code project as a ZIP archive.
+
+The project workflow allows a user to provide a multi-file project in one operation. CodeAudit can inspect the archive, identify supported source-code files, and pass those files into the same analysis capabilities used for individual source files.
+
+Project ZIP ingestion is an input mechanism rather than a separate analysis method.
+
+The initial V1 implementation supports direct project ZIP upload. Repository integrations such as GitHub and GitLab remain future possibilities.
+
 The tool is not limited to teachers. Developers, students, reviewers, interviewers, or researchers may use the same functionality.
 
 ## 4. Core Product Principles

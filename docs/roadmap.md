@@ -195,6 +195,35 @@ Exit condition:
 
 The V1 workflow is stable and demonstrable.
 
+## Backend-First Implementation Sequence
+
+The roadmap phases define product capabilities, but implementation may be sequenced to stabilize backend capabilities before dependent frontend interfaces.
+
+The backend-first sequence is:
+
+1. Phase 1 — File Upload & Validation backend
+2. Phase 2 — Exact Match Engine
+3. Phase 3 — AST Structural Engine
+4. Phase 4 — N-Gram & Similarity Engine
+5. Phase 6 — Batch & Reference Analysis backend
+6. Phase 7 — Code Execution & Testing backend
+7. Phase 8 — AI-Assisted Analysis backend
+8. Phase 9 — Reports backend
+9. Frontend implementation and integration
+10. Phase 10 — Hardening & Evaluation
+
+Frontend tasks defined by earlier phases are intentionally deferred until the corresponding backend contracts and result models are sufficiently stable.
+
+This sequencing does not remove frontend work from V1 and does not change the capability requirements of the existing phases.
+
+## Project ZIP Ingestion Milestone
+
+Project ZIP ingestion will be implemented as a dedicated backend capability after the initial file-upload foundation.
+
+The project-upload workflow will remain separate from the individual-file upload endpoint and will produce source-file analysis units for the existing analysis pipeline.
+
+The initial implementation supports direct ZIP upload only. GitHub/GitLab repository imports remain outside the initial implementation.
+
 ## Development Rule
 
 Every phase follows:
