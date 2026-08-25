@@ -6,6 +6,7 @@ import { upload } from "../config/upload.js";
 import { validateFileLanguage } from "../validation/file-validation.js";
 import { validateTotalUploadSize } from "../validation/upload-validation.js";
 import { uploadRateLimiter } from "../middleware/rate-limit.js";
+import { compareFiles } from "../analysis/exact-match/compare.js";
 
 const router = Router();
 
@@ -22,6 +23,49 @@ router.get("/languages", (_req, res) => {
     languages,
   });
 });
+
+router.post(
+  "/analyze/compare",
+  upload.fields([
+    { name: "fileA", maxCount: 1 },
+    { name: "fileB", maxCount: 1 },
+  ]),
+  (req, res) => {
+    const files = req.files as {
+      [fieldname: string]: Express.Multer.File[];
+    };
+
+    const fileA = files.fileA?.[0];
+    const fileB = files.fileB?.[0];
+
+    if (!fileA || !fileB) {
+      res.status(400).json({
+        error: {
+          code: "FILES_REQUIRED",
+          message: "Two source-code files are required for comparison.",
+          details: null,
+        },
+      });
+      return;
+    }
+
+    const result = compareFiles(fileA.buffer, fileB.buffer);
+
+    res.status(200).json({
+      files: [
+        {
+          name: fileA.originalname,
+          hash: result.hashA,
+        },
+        {
+          name: fileB.originalname,
+          hash: result.hashB,
+        },
+      ],
+      exactMatch: result.exactMatch,
+    });
+  },
+);
 
 router.post(
   "/uploads",

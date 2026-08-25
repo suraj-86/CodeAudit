@@ -189,6 +189,8 @@ Example:
   ]
 }
 
+```
+
 ## 6. Pairwise Analysis
 
 ### POST /api/analyze/compare
@@ -202,29 +204,33 @@ Expected multipart fields may include:
 - languageA (optional);
 - languageB (optional).
 
-Response concept:
+### Response
+
+A successful comparison returns the SHA-256 hash of each uploaded file and whether their contents are exactly identical.
+
+Example:
 
 ```json
 {
   "files": [
     {
-      "name": "a.py",
+      "name": "a.cpp",
       "hash": "..."
     },
     {
-      "name": "b.py",
+      "name": "b.cpp",
       "hash": "..."
     }
   ],
-  "exactMatch": false,
-  "structural": {
-    "similarity": 0.864,
-    "risk": "high"
-  }
+  "exactMatch": false
 }
 ```
 
-The exact response schema will be finalized during implementation.
+`exactMatch` is `true` only when the SHA-256 hashes of the two files are identical.
+
+Structural similarity is a separate analysis signal and is not calculated by this endpoint yet.
+
+The exact-match result does not indicate authorship or determine whether code was AI-generated.
 
 ## 7. Batch Analysis
 
