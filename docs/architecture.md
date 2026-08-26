@@ -93,6 +93,7 @@ Source-Code Validation
 Source File Analysis Units
     ↓
 Analysis Orchestrator
+```
 
 ## 5. Analysis Orchestrator
 
