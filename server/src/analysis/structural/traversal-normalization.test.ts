@@ -89,3 +89,51 @@ assertSame(
     sequenceFor(literalA),
     sequenceFor(literalB),
 );
+
+const structureA = `
+int calculate(int a, int b) {
+    return a + b;
+}
+`;
+
+const structureB = `
+int calculate(int a, int b) {
+    if (a > b) {
+        return a;
+    }
+
+    return b;
+}
+`;
+
+assertDifferent(
+    "structural change",
+    sequenceFor(structureA),
+    sequenceFor(structureB),
+);
+
+const structuralA = `
+int findMax(int a, int b) {
+    if (a > b) {
+        return a;
+    } else {
+        return b;
+    }
+}
+`;
+
+const structuralB = `
+int getLargest(int first, int second) {
+    if (first > second) {
+        return first;
+    } else {
+        return second;
+    }
+}
+`;
+
+assertSame(
+    "structural equivalence",
+    sequenceFor(structuralA),
+    sequenceFor(structuralB),
+);
