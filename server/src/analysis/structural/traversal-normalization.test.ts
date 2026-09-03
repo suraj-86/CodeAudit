@@ -137,3 +137,22 @@ assertSame(
     sequenceFor(structuralA),
     sequenceFor(structuralB),
 );
+
+const commentsA = `
+int calculate(int a, int b) {
+    return a + b;
+}
+`;
+
+const commentsB = `
+int calculate(int a, int b) {
+    // This comment should not affect structural similarity.
+    return a + b;
+}
+`;
+
+assertSame(
+    "comments do not affect structural representation",
+    sequenceFor(commentsA),
+    sequenceFor(commentsB),
+);

@@ -295,16 +295,62 @@ For two sets A and B, the basic Jaccard similarity is:
 J(A,B) = |A ∩ B| / |A ∪ B|
 ```
 
-The final V1 structural similarity implementation must document whether
-fingerprints or N-grams are treated as sets, multisets, weighted
-features, or another representation.
+The current V1 similarity implementation applies Jaccard similarity to
+the structural N-gram sequences as sets.
 
-Structural N-gram generation and structural fingerprinting are
-implemented primitives, but the final similarity comparison stage is not
-yet considered complete.
+The implementation therefore:
 
-V1 should begin with a clear deterministic formulation and test it
-against known examples.
+-   removes duplicate elements for the similarity calculation;
+-   calculates the intersection of the two sets;
+-   calculates the union of the two sets;
+-   returns the intersection size divided by the union size;
+-   returns `0` when both input sets are empty.
+
+Duplicate N-grams are still preserved by the N-gram generation stage.
+They simply do not increase the set-based Jaccard score.
+
+The current comparison stage is deterministic and accepts a configurable
+similarity threshold between `0` and `1`.
+
+Conceptually:
+
+``` text
+Structural Sequence
+        ↓
+N-Gram Generation
+        ↓
+Set-Based Jaccard Similarity
+        ↓
+Similarity + Threshold
+        ↓
+Suspicious Flag
+```
+
+A comparison result contains:
+
+``` text
+similarity
+threshold
+suspicious
+```
+
+The `suspicious` value is `true` when the calculated similarity is greater
+than or equal to the supplied threshold.
+
+The current implementation has been tested for:
+
+-   identical sequences;
+-   disjoint sequences;
+-   partial overlap;
+-   duplicate elements;
+-   empty sequences;
+-   one empty sequence;
+-   similarity equal to the threshold;
+-   rejection of invalid thresholds.
+
+This establishes a deterministic V1 similarity comparison primitive.
+It should not yet be interpreted as a complete plagiarism-detection
+system.
 
 ------------------------------------------------------------------------
 
@@ -313,17 +359,34 @@ against known examples.
 Similarity percentages should not automatically be treated as proof of
 plagiarism.
 
-A configurable interpretation can be used, for example:
+The V1 implementation provides configurable risk classification using:
 
 -   Low;
 -   Moderate;
 -   High;
 -   Very High.
 
-Thresholds must be experimentally justified and documented.
+Three increasing thresholds define the boundaries between these
+categories:
 
-They should be treated as indicators for investigation, not judicial or
-academic proof.
+``` text
+similarity < moderate       → Low
+similarity >= moderate      → Moderate
+similarity >= high          → High
+similarity >= veryHigh      → Very High
+```
+
+The implementation validates that:
+
+-   each threshold is between `0` and `1`;
+-   thresholds are strictly increasing.
+
+The current controlled tests use example thresholds to verify the
+classification behavior. These values are test configuration and are not
+presented as universally valid plagiarism thresholds.
+
+Risk categories should be treated as indicators for investigation, not
+judicial or academic proof.
 
 ------------------------------------------------------------------------
 
@@ -472,8 +535,7 @@ controlled examples:
 9.  legitimately different implementations;
 10. unrelated programs.
 
-The Phase 3 implementation already includes focused structural tests
-covering:
+The Phase 3 implementation includes focused structural tests covering:
 
 -   identifier renaming;
 -   operator changes;
@@ -483,8 +545,26 @@ covering:
 -   N-gram generation and edge cases;
 -   deterministic structural fingerprinting.
 
-The goal is to expand these controlled tests as the similarity engine is
-implemented, measuring both useful detections and false positives.
+Phase 4 extends this validation with similarity and controlled clone
+experiments.
+
+The current controlled clone experiments verify the following behaviors:
+
+-   Type-1-style changes, such as formatting/comment changes, can preserve
+    a similarity of `1`;
+-   Type-2-style identifier renaming can preserve a similarity of `1`
+    because identifier spellings are abstracted from the structural
+    representation;
+-   a Type-3-style structural modification can produce partial similarity;
+-   unrelated programs can produce lower similarity than the controlled
+    clone examples.
+
+The experiments validate the behavior of the current representation and
+comparison pipeline. They do not establish universal similarity or
+plagiarism thresholds.
+
+Further experiments should measure both useful detections and false
+positives before production thresholds are selected.
 
 ------------------------------------------------------------------------
 

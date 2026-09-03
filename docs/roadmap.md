@@ -107,7 +107,8 @@ Controlled examples produce stable structural representations.
 
 ## Phase 4 — N-Gram & Similarity Engine
 
-Goal: convert structural representations into similarity measurements.
+Goal: convert structural representations into deterministic similarity
+measurements and an initial risk interpretation.
 
 Tasks:
 
@@ -117,11 +118,21 @@ Tasks:
 - thresholds/risk interpretation;
 - controlled clone experiments.
 
-### Current Progress
+### Implementation Completed
 
-N-gram generation has been implemented and tested.
+Phase 4 currently includes:
 
-The current N-gram implementation:
+- configurable overlapping N-gram generation;
+- validation of N-gram size;
+- set-based Jaccard similarity;
+- a structural similarity result model;
+- threshold-based structural comparison;
+- configurable similarity-risk classification;
+- validation of similarity and threshold ranges;
+- validation of strictly increasing risk thresholds;
+- controlled clone experiments.
+
+The N-gram implementation:
 
 - generates overlapping N-grams from the structural sequence;
 - accepts a configurable positive integer window size;
@@ -130,20 +141,53 @@ The current N-gram implementation:
 - represents each N-gram as its structural elements joined by `|`;
 - rejects invalid N-gram sizes.
 
-The following Phase 4 tasks remain:
+The similarity implementation treats N-grams as sets for Jaccard
+calculation. Duplicate N-grams remain available from the generation
+stage but do not increase the set-based similarity score.
 
-- Jaccard calculation;
-- similarity result model;
-- thresholds/risk interpretation;
-- controlled clone experiments.
+The comparison result contains:
 
-The N-gram window size remains an implementation parameter and should be selected through controlled experiments rather than assumed to be universally optimal.
+- similarity;
+- threshold;
+- suspicious flag.
+
+The suspicious flag is set when similarity is greater than or equal to
+the configured threshold.
+
+Risk classification provides:
+
+- Low;
+- Moderate;
+- High;
+- Very High.
+
+Risk thresholds are configurable and must be within `0` to `1` and strictly
+increasing. The current test thresholds validate implementation behavior
+only and are not established as universal plagiarism thresholds.
+
+### Controlled Clone Validation
+
+The controlled experiments currently verify that:
+
+- Type-1-style formatting/comment changes can preserve similarity `1`;
+- Type-2-style identifier renaming can preserve similarity `1`;
+- Type-3-style structural modification produces partial similarity;
+- unrelated programs produce lower similarity than the controlled clone
+  examples.
+
+These experiments validate the current structural representation and
+comparison behavior. They do not by themselves establish scientifically
+universal plagiarism thresholds.
+
+The N-gram window size remains an implementation parameter and should be
+selected through controlled experiments rather than assumed to be
+universally optimal.
 
 Exit condition:
 
 Type-1, Type-2, and selected Type-3 examples can be meaningfully compared.
 
-**Status: IN PROGRESS**
+**Status: COMPLETE**
 
 ---
 
