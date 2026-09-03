@@ -19,6 +19,10 @@ Exit condition:
 
 The application starts cleanly and documentation is committed.
 
+**Status: COMPLETE**
+
+---
+
 ## Phase 1 — File Upload & Validation
 
 Goal: safely accept source files.
@@ -38,6 +42,10 @@ Exit condition:
 
 Valid and invalid uploads behave predictably.
 
+**Status: COMPLETE**
+
+---
+
 ## Phase 2 — Exact Match Engine
 
 Goal: implement cheap deterministic comparison.
@@ -53,6 +61,10 @@ Exit condition:
 
 Identical files are detected reliably without running expensive structural analysis.
 
+**Status: COMPLETE**
+
+---
+
 ## Phase 3 — AST Structural Engine
 
 Goal: implement the core technical contribution.
@@ -67,9 +79,31 @@ Tasks:
 - generate structural sequences;
 - unit-test fingerprints.
 
+Implementation completed for the current V1 structural-analysis increment includes:
+
+- Tree-sitter-based C++ parsing;
+- recursive structural traversal;
+- representation using named syntax-node types;
+- explicit representation of selected structural operators;
+- normalization behavior that avoids using identifier and literal text directly in the structural sequence;
+- structural sequence generation;
+- deterministic structural fingerprint generation using SHA-256;
+- controlled tests for identifier renaming;
+- controlled tests for literal-value changes;
+- controlled tests for operator changes;
+- controlled tests for structural changes;
+- controlled tests for structurally equivalent implementations;
+- deterministic fingerprint tests.
+
 Exit condition:
 
 Controlled examples produce stable structural representations.
+
+**Exit condition achieved for the current implementation.**
+
+**Status: COMPLETE**
+
+---
 
 ## Phase 4 — N-Gram & Similarity Engine
 
@@ -83,9 +117,35 @@ Tasks:
 - thresholds/risk interpretation;
 - controlled clone experiments.
 
+### Current Progress
+
+N-gram generation has been implemented and tested.
+
+The current N-gram implementation:
+
+- generates overlapping N-grams from the structural sequence;
+- accepts a configurable positive integer window size;
+- returns an empty sequence when the requested window is larger than the input sequence;
+- preserves duplicate N-grams;
+- represents each N-gram as its structural elements joined by `|`;
+- rejects invalid N-gram sizes.
+
+The following Phase 4 tasks remain:
+
+- Jaccard calculation;
+- similarity result model;
+- thresholds/risk interpretation;
+- controlled clone experiments.
+
+The N-gram window size remains an implementation parameter and should be selected through controlled experiments rather than assumed to be universally optimal.
+
 Exit condition:
 
 Type-1, Type-2, and selected Type-3 examples can be meaningfully compared.
+
+**Status: IN PROGRESS**
+
+---
 
 ## Phase 5 — Comparison UI
 
@@ -104,6 +164,10 @@ Exit condition:
 
 A user can upload two files and understand the comparison result.
 
+**Status: NOT STARTED**
+
+---
+
 ## Phase 6 — Batch & Reference Analysis
 
 Goal: support practical coding-test workflows.
@@ -119,6 +183,10 @@ Tasks:
 Exit condition:
 
 A practical-test batch can be analyzed without manual pair-by-pair uploads.
+
+**Status: NOT STARTED**
+
+---
 
 ## Phase 7 — Code Execution & Testing
 
@@ -136,6 +204,10 @@ Tasks:
 Exit condition:
 
 Supported languages can safely execute controlled test cases.
+
+**Status: NOT STARTED**
+
+---
 
 ## Phase 8 — AI-Assisted Analysis
 
@@ -155,6 +227,10 @@ Exit condition:
 
 The feature works independently from the AST engine and fails gracefully when unavailable.
 
+**Status: NOT STARTED**
+
+---
+
 ## Phase 9 — Reports
 
 Goal: provide a professional result artifact.
@@ -173,6 +249,10 @@ Tasks:
 Exit condition:
 
 A user can generate a coherent report from an analysis.
+
+**Status: NOT STARTED**
+
+---
 
 ## Phase 10 — Hardening & Evaluation
 
@@ -195,34 +275,9 @@ Exit condition:
 
 The V1 workflow is stable and demonstrable.
 
-## Backend-First Implementation Sequence
+**Status: NOT STARTED**
 
-The roadmap phases define product capabilities, but implementation may be sequenced to stabilize backend capabilities before dependent frontend interfaces.
-
-The backend-first sequence is:
-
-1. Phase 1 — File Upload & Validation backend
-2. Phase 2 — Exact Match Engine
-3. Phase 3 — AST Structural Engine
-4. Phase 4 — N-Gram & Similarity Engine
-5. Phase 6 — Batch & Reference Analysis backend
-6. Phase 7 — Code Execution & Testing backend
-7. Phase 8 — AI-Assisted Analysis backend
-8. Phase 9 — Reports backend
-9. Frontend implementation and integration
-10. Phase 10 — Hardening & Evaluation
-
-Frontend tasks defined by earlier phases are intentionally deferred until the corresponding backend contracts and result models are sufficiently stable.
-
-This sequencing does not remove frontend work from V1 and does not change the capability requirements of the existing phases.
-
-## Project ZIP Ingestion Milestone
-
-Project ZIP ingestion will be implemented as a dedicated backend capability after the initial file-upload foundation.
-
-The project-upload workflow will remain separate from the individual-file upload endpoint and will produce source-file analysis units for the existing analysis pipeline.
-
-The initial implementation supports direct ZIP upload only. GitHub/GitLab repository imports remain outside the initial implementation.
+---
 
 ## Development Rule
 
@@ -233,3 +288,7 @@ Inspect → Design → Implement → Test → Review → Commit → Push.
 No phase should silently expand into unrelated functionality.
 
 At the end of meaningful phases, update the relevant documentation.
+
+Documentation must reflect the actual implemented behavior rather than planned or assumed behavior.
+
+Algorithmic changes must be reflected in the relevant specification before they become part of the official implementation.
