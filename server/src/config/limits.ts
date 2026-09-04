@@ -2,6 +2,10 @@ export const UPLOAD_LIMITS = {
   maxFileSizeBytes: 1 * 1024 * 1024,
   maxFiles: 100,
   maxTotalSourceBytes: 100 * 1024 * 1024,
+
+  batch: {
+    maxSubmissions: 100,
+},
 } as const;
 
 export const SUPPORTED_LANGUAGES = {
