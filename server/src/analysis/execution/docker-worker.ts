@@ -2,7 +2,10 @@ import type { ProcessRunner } from "./process-runner.js";
 
 import type { ExecutionConfig } from "./execution-config.js";
 import type { ExecutionRequest } from "./execution-request.js";
-import type { ExecutionResult } from "./execution-result.js";
+import type {
+    ExecutionResult,
+    TestCaseResult,
+} from "./execution-result.js";
 import type { ExecutionWorker } from "./execution-worker.js";
 
 export interface DockerRuntime {
@@ -17,30 +20,136 @@ export class DockerExecutionWorker implements ExecutionWorker {
         private readonly processRunner: ProcessRunner,
     ) {}
 
-    run(request: ExecutionRequest): Promise<ExecutionResult> {
+    async run(request: ExecutionRequest): Promise<ExecutionResult> {
+        const testCaseResults: TestCaseResult[] = [];
+
+        for (const testCase of request.testCases) {
+            const result = await this.runTestCase(
+                request.source,
+                testCase.input,
+                testCase.expectedOutput,
+                testCase.id,
+            );
+
+            testCaseResults.push(result);
+
+            if (
+                result.status === "Runtime Error" ||
+                result.status === "Compilation Error" ||
+                result.status === "Timeout"
+            ) {
+                break;
+            }
+        }
+
+        const passedTests = testCaseResults.filter(
+            (result) => result.status === "Passed",
+        ).length;
+
+        const failedTests = testCaseResults.filter(
+            (result) => result.status !== "Passed",
+        ).length;
+
+        let status: ExecutionResult["status"] = "Passed";
+
+        if (
+            testCaseResults.some(
+                (result) => result.status === "Timeout",
+            )
+        ) {
+            status = "Timeout";
+        } else if (
+            testCaseResults.some(
+                (result) => result.status === "Compilation Error",
+            )
+        ) {
+            status = "Compilation Error";
+        } else if (
+            testCaseResults.some(
+                (result) => result.status === "Runtime Error",
+            )
+        ) {
+            status = "Runtime Error";
+        } else if (failedTests > 0) {
+            status = "Failed";
+        }
+
+        const executionTimeMs = testCaseResults.reduce(
+            (total, result) =>
+                total + (result.executionTimeMs ?? 0),
+            0,
+        );
+
+        return {
+            status,
+            passedTests,
+            failedTests,
+            testCases: testCaseResults,
+            executionTimeMs,
+        };
+    }
+
+    private runTestCase(
+        source: string,
+        input: string,
+        expectedOutput: string,
+        testCaseId: string,
+    ): Promise<TestCaseResult> {
         return new Promise((resolve, reject) => {
+            const startedAt = performance.now();
+
+            const getExecutionTimeMs = (): number =>
+                Math.max(
+                    0,
+                    Math.round(performance.now() - startedAt),
+                );
+
             const dockerArgs = [
                 "run",
                 "--rm",
                 "-i",
-                "--network",
-                "none",
+            ];
+
+            if (this.config.networkDisabled) {
+                dockerArgs.push(
+                    "--network",
+                    "none",
+                );
+            }
+
+            dockerArgs.push(
                 "--read-only",
                 "--tmpfs",
                 "/tmp:rw,nosuid,size=64m",
                 this.runtime.image,
                 ...this.runtime.command,
-                request.source,
-            ];
+                source,
+            );
 
-            const child = this.processRunner.run("docker", dockerArgs, {
-    stdio: ["pipe", "pipe", "pipe"],
-    windowsHide: true,
-});
+            const child = this.processRunner.run(
+                "docker",
+                dockerArgs,
+                {
+                    stdio: ["pipe", "pipe", "pipe"],
+                    windowsHide: true,
+                },
+            );
 
             let stdout = "";
             let stderr = "";
             let settled = false;
+
+            const finish = (
+                result: TestCaseResult,
+            ): void => {
+                if (settled) {
+                    return;
+                }
+
+                settled = true;
+                clearTimeout(timeout);
+                resolve(result);
+            };
 
             const timeout = setTimeout(() => {
                 if (settled) {
@@ -51,72 +160,115 @@ export class DockerExecutionWorker implements ExecutionWorker {
                 child.kill("SIGKILL");
 
                 resolve({
+                    testCaseId,
                     status: "Timeout",
-                    passedTests: 0,
-                    failedTests: 0,
-                    testCases: [],
+                    actualOutput: stdout.trim(),
+                    error: "Execution timed out.",
+                    executionTimeMs: getExecutionTimeMs(),
                 });
             }, this.config.timeoutMs);
 
-            child.stdout.on("data", (chunk: Buffer) => {
-                stdout += chunk.toString("utf8");
+            child.stdout.on(
+                "data",
+                (chunk: Buffer) => {
+                    if (settled) {
+                        return;
+                    }
 
-                if (
-                    Buffer.byteLength(stdout, "utf8") >
-                    this.config.maxOutputBytes
-                ) {
-                    clearTimeout(timeout);
+                    stdout += chunk.toString("utf8");
 
-                    if (!settled) {
+                    if (
+                        Buffer.byteLength(stdout, "utf8") >
+                        this.config.maxOutputBytes
+                    ) {
                         settled = true;
+                        clearTimeout(timeout);
                         child.kill("SIGKILL");
 
                         resolve({
+                            testCaseId,
                             status: "Runtime Error",
-                            passedTests: 0,
-                            failedTests: 0,
-                            testCases: [],
+                            actualOutput: stdout.trim(),
+                            error: "Output exceeded the configured limit.",
+                            executionTimeMs:
+                                getExecutionTimeMs(),
                         });
                     }
-                }
-            });
+                },
+            );
 
-            child.stderr.on("data", (chunk: Buffer) => {
-                stderr += chunk.toString("utf8");
-            });
+            child.stderr.on(
+                "data",
+                (chunk: Buffer) => {
+                    if (settled) {
+                        return;
+                    }
 
-            child.on("error", (error) => {
-                if (settled) {
-                    return;
-                }
+                    stderr += chunk.toString("utf8");
+                },
+            );
 
-                settled = true;
-                clearTimeout(timeout);
-                reject(error);
-            });
+            child.on(
+                "error",
+                (error) => {
+                    if (settled) {
+                        return;
+                    }
 
-            child.on("close", (code) => {
-                if (settled) {
-                    return;
-                }
+                    settled = true;
+                    clearTimeout(timeout);
+                    reject(error);
+                },
+            );
 
-                settled = true;
-                clearTimeout(timeout);
+            child.on(
+                "close",
+                (code) => {
+                    if (settled) {
+                        return;
+                    }
 
-                resolve({
-                    status: code === 0 ? "Passed" : "Runtime Error",
-                    passedTests: code === 0 ? request.testCases.length : 0,
-                    failedTests: code === 0 ? 0 : request.testCases.length,
-                    testCases: request.testCases.map((testCase) => ({
-                        testCaseId: testCase.id,
-                        status: code === 0 ? "Passed" : "Failed",
-                        actualOutput: stdout.trim(),
-                        error: stderr.trim(),
-                    })),
-                });
-            });
+                    const actualOutput = stdout.trim();
+                    const error = stderr.trim();
 
-            child.stdin.end();
+                    if (code !== 0) {
+                        const compilationError =
+                            error.includes("SyntaxError") ||
+                            error.includes("IndentationError") ||
+                            error.includes("TabError");
+
+                        finish({
+                            testCaseId,
+                            status: compilationError
+                                ? "Compilation Error"
+                                : "Runtime Error",
+                            actualOutput,
+                            error,
+                            executionTimeMs:
+                                getExecutionTimeMs(),
+                        });
+
+                        return;
+                    }
+
+                    const passed =
+                        actualOutput ===
+                        expectedOutput.trim();
+
+                    finish({
+                        testCaseId,
+                        status: passed
+                            ? "Passed"
+                            : "Failed",
+                        actualOutput,
+                        error,
+                        executionTimeMs:
+                            getExecutionTimeMs(),
+                    });
+                },
+            );
+
+            child.stdin.end(input);
         });
     }
 }
