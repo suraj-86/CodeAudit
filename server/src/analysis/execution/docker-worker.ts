@@ -20,7 +20,9 @@ export class DockerExecutionWorker implements ExecutionWorker {
         private readonly processRunner: ProcessRunner,
     ) {}
 
-    async run(request: ExecutionRequest): Promise<ExecutionResult> {
+    async run(
+        request: ExecutionRequest,
+    ): Promise<ExecutionResult> {
         const testCaseResults: TestCaseResult[] = [];
 
         for (const testCase of request.testCases) {
@@ -33,40 +35,60 @@ export class DockerExecutionWorker implements ExecutionWorker {
 
             testCaseResults.push(result);
 
+            /*
+             * These states indicate that the current source cannot
+             * continue to the remaining test cases.
+             */
             if (
                 result.status === "Runtime Error" ||
                 result.status === "Compilation Error" ||
-                result.status === "Timeout"
+                result.status === "Timeout" ||
+                result.status === "Execution Unavailable"
             ) {
                 break;
             }
         }
 
-        const passedTests = testCaseResults.filter(
-            (result) => result.status === "Passed",
-        ).length;
+        const passedTests =
+            testCaseResults.filter(
+                (result) =>
+                    result.status === "Passed",
+            ).length;
 
-        const failedTests = testCaseResults.filter(
-            (result) => result.status !== "Passed",
-        ).length;
+        const failedTests =
+            testCaseResults.filter(
+                (result) =>
+                    result.status !== "Passed",
+            ).length;
 
-        let status: ExecutionResult["status"] = "Passed";
+        let status: ExecutionResult["status"] =
+            "Passed";
 
         if (
             testCaseResults.some(
-                (result) => result.status === "Timeout",
+                (result) =>
+                    result.status === "Execution Unavailable",
+            )
+        ) {
+            status = "Execution Unavailable";
+        } else if (
+            testCaseResults.some(
+                (result) =>
+                    result.status === "Timeout",
             )
         ) {
             status = "Timeout";
         } else if (
             testCaseResults.some(
-                (result) => result.status === "Compilation Error",
+                (result) =>
+                    result.status === "Compilation Error",
             )
         ) {
             status = "Compilation Error";
         } else if (
             testCaseResults.some(
-                (result) => result.status === "Runtime Error",
+                (result) =>
+                    result.status === "Runtime Error",
             )
         ) {
             status = "Runtime Error";
@@ -74,11 +96,13 @@ export class DockerExecutionWorker implements ExecutionWorker {
             status = "Failed";
         }
 
-        const executionTimeMs = testCaseResults.reduce(
-            (total, result) =>
-                total + (result.executionTimeMs ?? 0),
-            0,
-        );
+        const executionTimeMs =
+            testCaseResults.reduce(
+                (total, result) =>
+                    total +
+                    (result.executionTimeMs ?? 0),
+                0,
+            );
 
         return {
             status,
@@ -95,14 +119,19 @@ export class DockerExecutionWorker implements ExecutionWorker {
         expectedOutput: string,
         testCaseId: string,
     ): Promise<TestCaseResult> {
-        return new Promise((resolve, reject) => {
-            const startedAt = performance.now();
+        return new Promise((resolve) => {
+            const startedAt =
+                performance.now();
 
-            const getExecutionTimeMs = (): number =>
-                Math.max(
-                    0,
-                    Math.round(performance.now() - startedAt),
-                );
+            const getExecutionTimeMs =
+                (): number =>
+                    Math.max(
+                        0,
+                        Math.round(
+                            performance.now() -
+                                startedAt,
+                        ),
+                    );
 
             const dockerArgs = [
                 "run",
@@ -126,14 +155,19 @@ export class DockerExecutionWorker implements ExecutionWorker {
                 source,
             );
 
-            const child = this.processRunner.run(
-                "docker",
-                dockerArgs,
-                {
-                    stdio: ["pipe", "pipe", "pipe"],
-                    windowsHide: true,
-                },
-            );
+            const child =
+                this.processRunner.run(
+                    "docker",
+                    dockerArgs,
+                    {
+                        stdio: [
+                            "pipe",
+                            "pipe",
+                            "pipe",
+                        ],
+                        windowsHide: true,
+                    },
+                );
 
             let stdout = "";
             let stderr = "";
@@ -162,9 +196,12 @@ export class DockerExecutionWorker implements ExecutionWorker {
                 resolve({
                     testCaseId,
                     status: "Timeout",
-                    actualOutput: stdout.trim(),
-                    error: "Execution timed out.",
-                    executionTimeMs: getExecutionTimeMs(),
+                    actualOutput:
+                        stdout.trim(),
+                    error:
+                        "Execution timed out.",
+                    executionTimeMs:
+                        getExecutionTimeMs(),
                 });
             }, this.config.timeoutMs);
 
@@ -175,21 +212,36 @@ export class DockerExecutionWorker implements ExecutionWorker {
                         return;
                     }
 
-                    stdout += chunk.toString("utf8");
+                    stdout +=
+                        chunk.toString(
+                            "utf8",
+                        );
 
                     if (
-                        Buffer.byteLength(stdout, "utf8") >
-                        this.config.maxOutputBytes
+                        Buffer.byteLength(
+                            stdout,
+                            "utf8",
+                        ) >
+                        this.config
+                            .maxOutputBytes
                     ) {
                         settled = true;
-                        clearTimeout(timeout);
-                        child.kill("SIGKILL");
+                        clearTimeout(
+                            timeout,
+                        );
+
+                        child.kill(
+                            "SIGKILL",
+                        );
 
                         resolve({
                             testCaseId,
-                            status: "Runtime Error",
-                            actualOutput: stdout.trim(),
-                            error: "Output exceeded the configured limit.",
+                            status:
+                                "Runtime Error",
+                            actualOutput:
+                                stdout.trim(),
+                            error:
+                                "Output exceeded the configured limit.",
                             executionTimeMs:
                                 getExecutionTimeMs(),
                         });
@@ -204,10 +256,20 @@ export class DockerExecutionWorker implements ExecutionWorker {
                         return;
                     }
 
-                    stderr += chunk.toString("utf8");
+                    stderr +=
+                        chunk.toString(
+                            "utf8",
+                        );
                 },
             );
 
+            /*
+             * An error here means the Docker process itself
+             * could not be started or became unavailable.
+             *
+             * This is different from the submitted program
+             * failing inside the container.
+             */
             child.on(
                 "error",
                 (error) => {
@@ -217,7 +279,18 @@ export class DockerExecutionWorker implements ExecutionWorker {
 
                     settled = true;
                     clearTimeout(timeout);
-                    reject(error);
+
+                    resolve({
+                        testCaseId,
+                        status:
+                            "Execution Unavailable",
+                        actualOutput:
+                            stdout.trim(),
+                        error:
+                            error.message,
+                        executionTimeMs:
+                            getExecutionTimeMs(),
+                    });
                 },
             );
 
@@ -228,20 +301,30 @@ export class DockerExecutionWorker implements ExecutionWorker {
                         return;
                     }
 
-                    const actualOutput = stdout.trim();
-                    const error = stderr.trim();
+                    const actualOutput =
+                        stdout.trim();
+
+                    const error =
+                        stderr.trim();
 
                     if (code !== 0) {
                         const compilationError =
-                            error.includes("SyntaxError") ||
-                            error.includes("IndentationError") ||
-                            error.includes("TabError");
+                            error.includes(
+                                "SyntaxError",
+                            ) ||
+                            error.includes(
+                                "IndentationError",
+                            ) ||
+                            error.includes(
+                                "TabError",
+                            );
 
                         finish({
                             testCaseId,
-                            status: compilationError
-                                ? "Compilation Error"
-                                : "Runtime Error",
+                            status:
+                                compilationError
+                                    ? "Compilation Error"
+                                    : "Runtime Error",
                             actualOutput,
                             error,
                             executionTimeMs:

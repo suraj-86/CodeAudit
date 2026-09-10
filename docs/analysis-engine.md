@@ -1,4 +1,4 @@
-# CodeAudit --- Analysis Engine Specification
+# CodeAudit — Analysis Engine Specification
 
 ## 1. Purpose
 
@@ -295,24 +295,62 @@ For two sets A and B, the basic Jaccard similarity is:
 J(A,B) = |A ∩ B| / |A ∪ B|
 ```
 
-The V1 similarity implementation uses N-grams as sets for the Jaccard
-calculation. Duplicate N-grams are preserved during generation but do
-not increase the set-based similarity score.
+The current V1 similarity implementation applies Jaccard similarity to
+the structural N-gram sequences as sets.
 
-The similarity value is deterministic and remains within the range `0`
-to `1`.
+The implementation therefore:
 
-The structural comparison layer accepts a similarity threshold and
-returns:
+-   removes duplicate elements for the similarity calculation;
+-   calculates the intersection of the two sets;
+-   calculates the union of the two sets;
+-   returns the intersection size divided by the union size;
+-   returns `0` when both input sets are empty.
 
--   similarity;
--   threshold;
--   suspicious flag.
+Duplicate N-grams are still preserved by the N-gram generation stage.
+They simply do not increase the set-based Jaccard score.
 
-The suspicious flag is set when similarity is greater than or equal to
-the configured threshold.
+The current comparison stage is deterministic and accepts a configurable
+similarity threshold between `0` and `1`.
 
-Invalid thresholds outside `0` to `1` are rejected.
+Conceptually:
+
+``` text
+Structural Sequence
+        ↓
+N-Gram Generation
+        ↓
+Set-Based Jaccard Similarity
+        ↓
+Similarity + Threshold
+        ↓
+Suspicious Flag
+```
+
+A comparison result contains:
+
+``` text
+similarity
+threshold
+suspicious
+```
+
+The `suspicious` value is `true` when the calculated similarity is greater
+than or equal to the supplied threshold.
+
+The current implementation has been tested for:
+
+-   identical sequences;
+-   disjoint sequences;
+-   partial overlap;
+-   duplicate elements;
+-   empty sequences;
+-   one empty sequence;
+-   similarity equal to the threshold;
+-   rejection of invalid thresholds.
+
+This establishes a deterministic V1 similarity comparison primitive.
+It should not yet be interpreted as a complete plagiarism-detection
+system.
 
 ------------------------------------------------------------------------
 
@@ -321,22 +359,34 @@ Invalid thresholds outside `0` to `1` are rejected.
 Similarity percentages should not automatically be treated as proof of
 plagiarism.
 
-The V1 implementation provides configurable risk classification:
+The V1 implementation provides configurable risk classification using:
 
 -   Low;
 -   Moderate;
 -   High;
 -   Very High.
 
-Similarity and risk thresholds must be within `0` to `1`.
+Three increasing thresholds define the boundaries between these
+categories:
 
-Risk thresholds must also be strictly increasing.
+``` text
+similarity < moderate       → Low
+similarity >= moderate      → Moderate
+similarity >= high          → High
+similarity >= veryHigh      → Very High
+```
 
-The current thresholds are implementation/test parameters. They are not
-presented as universal academic plagiarism thresholds.
+The implementation validates that:
 
-They should be treated as indicators for investigation, not judicial or
-academic proof.
+-   each threshold is between `0` and `1`;
+-   thresholds are strictly increasing.
+
+The current controlled tests use example thresholds to verify the
+classification behavior. These values are test configuration and are not
+presented as universally valid plagiarism thresholds.
+
+Risk categories should be treated as indicators for investigation, not
+judicial or academic proof.
 
 ------------------------------------------------------------------------
 
@@ -357,123 +407,9 @@ The UI should clearly distinguish:
 -   similarity to reference;
 -   similarity to another submission.
 
-Phase 6 extends this distinction to batch analysis: peer-to-peer
-suspicious pairs and reference-vs-submission results are reported as
-separate analysis signals.
-
 ------------------------------------------------------------------------
 
-## 11. Phase 5 UI Deferral
-
-Phase 5, the Comparison UI, was intentionally deferred.
-
-The project is following a backend-first implementation sequence so that
-the analysis engine can be completed and stabilized before the final UI
-is built around its contracts.
-
-Phase 6 introduced additional backend results beyond the original
-two-file comparison:
-
--   multiple submissions;
--   pairwise comparisons;
--   similarity matrix;
--   suspicious-pair ranking;
--   reference analysis;
--   batch orchestration.
-
-Building the UI before these contracts stabilized would have caused
-unnecessary frontend rework.
-
-Phase 5 is therefore deferred, not abandoned. It will be implemented
-later against the stabilized backend analysis contracts.
-
-------------------------------------------------------------------------
-
-## 12. Batch Analysis
-
-Phase 6 extends the analysis engine from individual comparisons to
-bounded batches of submissions.
-
-A batch submission contains:
-
-``` text
-BatchSubmission
-├── id
-├── name
-├── language
-└── source
-```
-
-The current maximum batch size is `100` submissions.
-
-Empty batches and batches exceeding the configured maximum are rejected.
-
-For `N` submissions, the number of unique unordered pairs is:
-
-``` text
-N × (N - 1) / 2
-```
-
-Therefore, the maximum batch of `100` submissions produces `4,950`
-unique pairs.
-
-The batch pipeline is:
-
-``` text
-Batch
-  ↓
-Validation
-  ↓
-Unique Pair Generation
-  ↓
-Pair Comparison
-  ↓
-Similarity Matrix
-  ↓
-Suspicious-Pair Ranking
-  ↓
-Reference Analysis
-```
-
-Submission-pair generation produces every unordered pair exactly once.
-For three submissions, the pairs are:
-
-``` text
-A-B
-A-C
-B-C
-```
-
-Reverse duplicates such as `B-A` are not generated.
-
-The pair-comparison layer is kept separate from pair generation so that
-both can be tested independently.
-
-The pairwise matrix provides a structured representation of
-relationships between submissions.
-
-The suspicious-pair ranking layer:
-
--   removes non-suspicious pairs;
--   keeps suspicious pairs;
--   orders them by similarity, highest first.
-
-The ranking is an investigation aid and is not itself proof of
-plagiarism.
-
-Reference analysis compares submissions against a supplied reference
-implementation and remains separate from peer-to-peer suspicious-pair
-analysis.
-
-The batch orchestration layer coordinates validation, pair generation,
-comparison, matrix generation, ranking, and reference analysis without
-embedding all of the logic into one component.
-
-Focused tests cover the Phase 6 batch components.
-
-------------------------------------------------------------------------
-
-## 13. Code Correctness
+## 11. Code Correctness
 
 Correctness should primarily be determined through execution against
 test cases when execution is available.
@@ -495,7 +431,7 @@ a high correctness score and low structural similarity.
 
 ------------------------------------------------------------------------
 
-## 14. AI-Assisted Analysis
+## 12. AI-Assisted Analysis
 
 AI analysis is a separate pipeline:
 
@@ -526,7 +462,7 @@ appropriate.
 
 ------------------------------------------------------------------------
 
-## 15. AI Limitations
+## 13. AI Limitations
 
 AI-code detection is probabilistic and can produce false positives and
 false negatives.
@@ -540,7 +476,7 @@ Therefore:
 
 ------------------------------------------------------------------------
 
-## 16. Combined Results
+## 14. Combined Results
 
 CodeAudit may present several independent indicators together:
 
@@ -561,7 +497,7 @@ as the final plagiarism or similarity result.
 
 ------------------------------------------------------------------------
 
-## 17. Explainability
+## 15. Explainability
 
 A structural similarity result should expose, where feasible:
 
@@ -583,7 +519,7 @@ unexplained score.
 
 ------------------------------------------------------------------------
 
-## 18. Experimental Validation
+## 16. Experimental Validation
 
 Before finalizing thresholds, the engine should be tested against
 controlled examples:
@@ -599,7 +535,7 @@ controlled examples:
 9.  legitimately different implementations;
 10. unrelated programs.
 
-The implementation includes focused tests covering:
+The Phase 3 implementation includes focused structural tests covering:
 
 -   identifier renaming;
 -   operator changes;
@@ -607,41 +543,32 @@ The implementation includes focused tests covering:
 -   structural changes;
 -   structurally equivalent examples;
 -   N-gram generation and edge cases;
--   deterministic structural fingerprinting;
--   similarity and threshold behavior;
--   similarity-risk classification;
--   batch analysis components.
+-   deterministic structural fingerprinting.
 
-The goal is to continue expanding controlled tests as the analysis
-engine evolves, measuring both useful detections and false positives.
+Phase 4 extends this validation with similarity and controlled clone
+experiments.
 
-------------------------------------------------------------------------
+The current controlled clone experiments verify the following behaviors:
 
-## 19. Current V1 Analysis Status
+-   Type-1-style changes, such as formatting/comment changes, can preserve
+    a similarity of `1`;
+-   Type-2-style identifier renaming can preserve a similarity of `1`
+    because identifier spellings are abstracted from the structural
+    representation;
+-   a Type-3-style structural modification can produce partial similarity;
+-   unrelated programs can produce lower similarity than the controlled
+    clone examples.
 
-The current V1 analysis engine includes:
+The experiments validate the behavior of the current representation and
+comparison pipeline. They do not establish universal similarity or
+plagiarism thresholds.
 
--   SHA-256 exact matching;
--   Tree-sitter structural traversal;
--   structural abstraction of identifiers and literals;
--   structural fingerprinting;
--   configurable N-gram generation;
--   set-based Jaccard similarity;
--   threshold-based comparison;
--   similarity-risk classification;
--   bounded batch validation;
--   unique submission-pair generation;
--   pairwise comparison;
--   pairwise similarity matrix generation;
--   suspicious-pair ranking;
--   reference-solution analysis;
--   batch orchestration.
-
-The comparison UI remains intentionally deferred to a later phase.
+Further experiments should measure both useful detections and false
+positives before production thresholds are selected.
 
 ------------------------------------------------------------------------
 
-## 20. Source of Truth Rule
+## 17. Source of Truth Rule
 
 Algorithmic changes must be reflected in this document before they
 become part of the official implementation specification.

@@ -54,29 +54,6 @@ Client-provided filenames shall be treated as metadata only and shall never be u
 
 Validation shall occur before expensive analysis operations.
 
-### FR-02A: Project ZIP Upload
-
-The system shall support uploading a complete source-code project as a ZIP archive through a dedicated project-ingestion workflow.
-
-The project ZIP workflow shall:
-
-- accept a ZIP archive as an input;
-- inspect the archive before analysis;
-- safely extract files into controlled temporary storage;
-- identify supported source-code files;
-- apply the applicable source-file validation rules;
-- reject unsafe or invalid archive contents;
-- exclude unsupported non-source files according to documented ingestion rules;
-- convert the project into source-file analysis units;
-- pass valid source files into the analysis pipeline;
-- remove temporary extracted data after the analysis lifecycle.
-
-The project ZIP workflow shall not require permanent source-code storage.
-
-The initial V1 implementation shall support direct ZIP upload only.
-
-GitHub/GitLab repository imports are not part of this requirement and remain future possibilities.
-
 ### FR-03: Exact Hashing
 
 The system shall calculate a cryptographic content hash for uploaded files.
@@ -125,9 +102,13 @@ The system shall accept test cases for supported execution workflows.
 
 The system shall execute submitted code only inside an isolated and resource-limited environment.
 
+The current V1 execution implementation provides a Python Docker execution worker.
+
+Execution support for other initially supported languages requires their corresponding execution workers and shall not be implied merely by upload or structural-analysis support.
+
 ### FR-15: Test Result Reporting
 
-The system shall report pass, fail, runtime error, compilation error, timeout, and unavailable-execution states where applicable.
+The system shall report pass, fail, runtime error, compilation error, timeout, unsupported, and unavailable-execution states where applicable.
 
 ### FR-16: AI Analysis
 
@@ -161,15 +142,7 @@ The API shall use rate limiting, with stricter limits for expensive parsing, bat
 
 ### NFR-03: Resource Limits
 
-The system shall enforce configurable limits for file size, request size, batch size, execution time, memory where enforceable, and analysis workload.
-
-For V1 source-code uploads:
-
-- individual file size shall be limited to 1 MB;
-- upload batch size shall be limited to 100 files;
-- aggregate source-file size shall be limited to 100 MB per request.
-
-The limits shall be centralized so they can be changed without modifying unrelated upload or analysis logic.
+The system shall enforce configurable limits for file size, request size, batch size, execution time, output where applicable, and analysis workload.
 
 ### NFR-04: No Unnecessary Persistence
 
@@ -181,7 +154,7 @@ Source code shall not be retained after the analysis lifecycle by default.
 
 ### NFR-06: Reliability
 
-Malformed source code, unsupported syntax, parser failures, compilation failures, runtime errors, and external AI-service failures shall produce controlled errors rather than crashing the application.
+Malformed source code, unsupported syntax, parser failures, compilation failures, runtime errors, execution-unavailable conditions, and external AI-service failures shall produce controlled errors rather than crashing the application.
 
 ### NFR-07: Explainability
 
@@ -199,26 +172,32 @@ Adding another supported language or analysis provider should not require rewrit
 
 The application should be deployable as a conventional frontend plus backend service without requiring a complex distributed infrastructure.
 
-## 3. Constraints
+## 3. Phase 7 Implementation Boundary
 
-- No authentication in V1.
-- No persistent user database in V1.
-- Anonymous upload is allowed.
-- Anonymous upload increases security requirements.
-- AI analysis depends on an external provider and therefore cannot be guaranteed to be available or deterministic.
-- Code execution must not run with the privileges of the primary web server.
+Phase 7 completes the current V1 backend execution implementation for Python through a Docker-based execution worker.
 
-## 4. Acceptance Philosophy
+The current implementation includes:
 
-A feature is not complete merely because the happy path works.
+- test-case input handling;
+- expected-output comparison;
+- execution result aggregation;
+- timeout handling;
+- output-size limiting;
+- runtime/compilation failure handling;
+- unsupported-language handling;
+- execution-unavailable handling;
+- execution timing.
 
-Each core feature should be tested for:
+The execution architecture uses an `ExecutionManager` and language-specific `ExecutionWorker` abstraction.
 
-- valid input;
-- invalid input;
-- malformed input;
-- boundary conditions;
-- resource exhaustion;
-- dependency failure;
-- cleanup;
-- expected output.
+The current focused validation recorded:
+
+- Docker execution worker: 9/9 passed;
+- execution-result tests: 4/4 passed;
+- execution-manager tests: 5/5 passed;
+- TypeScript typecheck: passed;
+- backend build: passed.
+
+The current Docker isolation implementation is a V1 baseline. Stronger production hardening remains part of Phase 10.
+
+The final comparison UI, AI-provider integration, report generation, and multi-language execution workers remain later implementation work.

@@ -99,69 +99,61 @@ Any material architectural or scope change should:
 
 **Decision:** CodeAudit V1 will use React + TypeScript + Vite for the frontend and Node.js + Express + TypeScript for the backend. npm will be used as the package manager.
 
-**Project structure:**
+---
 
-- `client/` — React frontend
-- `server/` — Express backend
-- `docs/` — project source-of-truth documentation
+# Phase 7 Decisions
 
-**Decision:** V1 will not use a database or Docker as part of the initial foundation.
+## Decision 017 — Execution Worker Abstraction
 
-**Reason:** This stack provides a lightweight, maintainable TypeScript-based foundation suitable for CodeAudit's scope without introducing unnecessary infrastructure.
+**Decision:** Code execution is implemented through an `ExecutionWorker` abstraction selected by an `ExecutionManager`.
 
-## Decision 017 — Upload Policy
+**Reason:** Language-specific execution should remain isolated so additional language workers can be introduced without rewriting the manager.
 
-**Decision:** CodeAudit V1 will enforce the following anonymous upload policy:
+## Decision 018 — Docker-Based Python Execution
 
-- maximum individual source file size: 1 MB;
-- maximum files per upload request: 100;
-- maximum aggregate source-file size per request: 100 MB;
-- aggregate source-file capacity scales with the number of uploaded files, subject to the 100 MB request maximum;
-- one upload request must use one selected programming language;
-- every uploaded file must have an extension supported by the selected language;
-- unsupported extensions are rejected;
-- files whose detected extension does not match the selected language are rejected;
-- mixed-language batches are rejected;
-- client-provided filenames are treated as metadata and must never be used as filesystem paths.
+**Decision:** The current Python execution worker executes submitted source through Docker instead of directly inside the Node.js API process.
 
-**Initial supported languages:**
+**Reason:** Submitted source is untrusted and requires an execution boundary separate from the API process.
 
-- Python
-- C
-- C++
-- Java
-- JavaScript
-- TypeScript
+## Decision 019 — Python Is the Current Execution Worker
 
-**Reason:** CodeAudit must support practical classroom-sized batch uploads while maintaining predictable resource limits. A 1 MB individual file limit is sufficient for normal programming-test submissions, while allowing up to 100 files supports a typical class-sized batch. Language-specific validation prevents incompatible submissions from entering the analysis pipeline.
+**Decision:** Phase 7 implements a Python execution worker as the current V1 execution capability.
 
-The upload policy applies before analysis and is independent of later AST, execution, or AI-analysis capabilities.
+**Reason:** Execution is being implemented incrementally. Unsupported languages are explicitly reported instead of being silently routed to an unrelated runtime.
 
-## Decision 018 — Whole-Project ZIP Upload
+## Decision 020 — Explicit Execution States
 
-**Decision:** CodeAudit V1 will support uploading a complete source-code project as a ZIP archive through a dedicated project-ingestion workflow.
+**Decision:** Execution distinguishes `Passed`, `Failed`, `Compilation Error`, `Runtime Error`, `Timeout`, `Unsupported`, and `Execution Unavailable`.
 
-**Reason:** Many real submissions are organized as complete projects rather than isolated source files. Supporting project archives allows CodeAudit to analyze multi-file submissions while keeping the existing individual-file upload workflow intact.
+**Reason:** Infrastructure failures, source failures, and correctness results have different meanings and must remain distinguishable.
 
-The project-upload workflow will:
+## Decision 021 — Timeout and Output Limits
 
-- accept a ZIP archive;
-- safely inspect and extract the archive;
-- identify supported source-code files;
-- apply the existing language and upload-policy rules;
-- exclude unsupported/non-source files according to documented ingestion rules;
-- convert the project into source-file analysis units;
-- pass those files into the existing analysis pipeline;
-- avoid permanent source-code storage in V1.
+**Decision:** Execution is bounded by a timeout and a configured output-size limit.
 
-Project ZIP ingestion is an input mechanism, not a separate analysis engine.
+**Reason:** Untrusted programs must not be allowed to consume execution resources indefinitely or produce uncontrolled output.
 
-The initial V1 implementation will support direct ZIP upload only. GitHub/GitLab repository imports remain future possibilities.
+## Decision 022 — Current Docker Isolation Is a V1 Baseline
 
-## Decision 019 — Backend-First Implementation Sequence
+**Decision:** The current Docker implementation is treated as the V1 execution-isolation baseline rather than as the final production security boundary.
 
-**Decision:** CodeAudit development will implement and stabilize backend analysis capabilities before building the corresponding frontend interfaces.
+**Reason:** Phase 7 establishes controlled execution first; stronger CPU, memory, process, capability, privilege, and other hardening controls remain part of Phase 10.
 
-**Reason:** The backend APIs and analysis result models should stabilize before dependent UI work is implemented. This reduces rework while preserving the documented product architecture.
+## Decision 023 — Execution Availability Is Separate from Program Correctness
 
-The frontend remains part of V1, but frontend implementation may be deferred until the required backend capabilities are sufficiently stable.
+**Decision:** Failure to start the Docker execution environment is reported as `Execution Unavailable`.
+
+**Reason:** Infrastructure availability is not the same as a failed program.
+
+## Decision 024 — Correctness Remains Independent
+
+**Decision:** Functional correctness results remain separate from structural similarity, exact matching, and AI-assisted analysis.
+
+**Reason:** A correct program may be structurally different, and a structurally similar program may still be incorrect.
+
+## Decision 025 — Phase 7 Does Not Claim Multi-Language Execution
+
+**Decision:** The project does not claim executable support for all initially listed languages until their execution workers are implemented.
+
+**Reason:** Upload/analysis language support and execution-worker support are distinct capabilities.
+

@@ -24,9 +24,14 @@ import type {
 } from "./process-runner.js";
 
 function createFakeChild() {
-    const stdout = new PassThrough();
-    const stderr = new PassThrough();
-    const stdin = new PassThrough();
+    const stdout =
+        new PassThrough();
+
+    const stderr =
+        new PassThrough();
+
+    const stdin =
+        new PassThrough();
 
     const child = Object.assign(
         new EventEmitter(),
@@ -97,23 +102,23 @@ test(
 
         const processRunner: ProcessRunner = {
             run(
-                command: string,
-                args: string[],
+                command,
+                args,
                 _options,
             ) {
                 receivedCommand =
                     command;
 
-                receivedArgs =
-                    args;
+                receivedArgs = args;
 
                 queueMicrotask(() => {
-    stdout.write("5\n");
+                    stdout.write("5\n");
 
-    setImmediate(() => {
-        fake.emit("close", 0);
-    });
-});
+                    fake.emit(
+                        "close",
+                        0,
+                    );
+                });
 
                 return fake;
             },
@@ -168,7 +173,7 @@ test(
 
         assert.equal(
             result.failedTests,
-            1,
+            0,
         );
 
         assert.equal(
@@ -192,7 +197,9 @@ test(
         );
 
         assert.equal(
-            typeof result.testCases[0]?.executionTimeMs,
+            typeof result
+                .testCases[0]
+                ?.executionTimeMs,
             "number",
         );
     },
@@ -213,7 +220,9 @@ test(
             "data",
             (chunk: Buffer) => {
                 receivedInput +=
-                    chunk.toString("utf8");
+                    chunk.toString(
+                        "utf8",
+                    );
             },
         );
 
@@ -224,7 +233,9 @@ test(
                 _options,
             ) {
                 queueMicrotask(() => {
-                    stdout.write("25\n");
+                    stdout.write(
+                        "25\n",
+                    );
 
                     fake.emit(
                         "close",
@@ -254,7 +265,8 @@ test(
                         {
                             id: "case-1",
                             input: "5\n",
-                            expectedOutput: "25",
+                            expectedOutput:
+                                "25",
                         },
                     ],
                 ),
@@ -368,10 +380,6 @@ test(
 test(
     "DockerExecutionWorker evaluates multiple test cases independently",
     async () => {
-        const children: ReturnType<
-            typeof createFakeChild
-        >[] = [];
-
         let runCount = 0;
 
         const processRunner: ProcessRunner = {
@@ -380,31 +388,31 @@ test(
                 _args,
                 _options,
             ) {
-                const child =
-                    createFakeChild();
-
-                children.push(child);
+                const {
+                    child,
+                    stdout,
+                } = createFakeChild();
 
                 runCount += 1;
 
                 queueMicrotask(() => {
                     if (runCount === 1) {
-                        child.stdout.write(
+                        stdout.write(
                             "4\n",
                         );
                     } else {
-                        child.stdout.write(
+                        stdout.write(
                             "25\n",
                         );
                     }
 
-                    child.child.emit(
+                    child.emit(
                         "close",
                         0,
                     );
                 });
 
-                return child.child;
+                return child;
             },
         };
 
@@ -497,6 +505,76 @@ test(
 );
 
 test(
+    "DockerExecutionWorker reports a compilation error for invalid Python source",
+    async () => {
+        const {
+            child: fake,
+            stderr,
+        } = createFakeChild();
+
+        const processRunner: ProcessRunner = {
+            run(
+                _command,
+                _args,
+                _options,
+            ) {
+                queueMicrotask(() => {
+                    stderr.write(
+                        "SyntaxError: invalid syntax\n",
+                    );
+
+                    fake.emit(
+                        "close",
+                        1,
+                    );
+                });
+
+                return fake;
+            },
+        };
+
+        const worker =
+            new DockerExecutionWorker(
+                createConfig(),
+                createRuntime(),
+                processRunner,
+            );
+
+        const result =
+            await worker.run(
+                createRequest(
+                    "this is invalid python",
+                ),
+            );
+
+        assert.equal(
+            result.status,
+            "Compilation Error",
+        );
+
+        assert.equal(
+            result.passedTests,
+            0,
+        );
+
+        assert.equal(
+            result.failedTests,
+            1,
+        );
+
+        assert.equal(
+            result.testCases.length,
+            1,
+        );
+
+        assert.equal(
+            result.testCases[0]?.status,
+            "Compilation Error",
+        );
+    },
+);
+
+test(
     "DockerExecutionWorker reports a runtime error when Docker exits unsuccessfully",
     async () => {
         const {
@@ -560,11 +638,6 @@ test(
         );
 
         assert.equal(
-            result.testCases[0]?.testCaseId,
-            "case-1",
-        );
-
-        assert.equal(
             result.testCases[0]?.status,
             "Runtime Error",
         );
@@ -588,7 +661,6 @@ test(
 
         fake.kill = (() => {
             killed = true;
-
             return true;
         }) as ChildProcessWithoutNullStreams["kill"];
 
@@ -639,14 +711,105 @@ test(
             0,
         );
 
+        /*
+         * Exceeding the output limit means
+         * the current test case failed.
+         */
         assert.equal(
             result.failedTests,
+            1,
+        );
+
+        assert.equal(
+            result.testCases.length,
+            1,
+        );
+
+        assert.equal(
+            result.testCases[0]?.testCaseId,
+            "case-1",
+        );
+
+        assert.equal(
+            result.testCases[0]?.status,
+            "Runtime Error",
+        );
+
+        assert.equal(
+            result.testCases[0]?.error,
+            "Output exceeded the configured limit.",
+        );
+    },
+);
+
+test(
+    "DockerExecutionWorker reports execution unavailable when Docker cannot start",
+    async () => {
+        const {
+            child: fake,
+        } = createFakeChild();
+
+        const processRunner: ProcessRunner = {
+            run(
+                _command,
+                _args,
+                _options,
+            ) {
+                queueMicrotask(() => {
+                    fake.emit(
+                        "error",
+                        new Error(
+                            "Docker executable not found.",
+                        ),
+                    );
+                });
+
+                return fake;
+            },
+        };
+
+        const worker =
+            new DockerExecutionWorker(
+                createConfig(),
+                createRuntime(),
+                processRunner,
+            );
+
+        const result =
+            await worker.run(
+                createRequest(
+                    "print(5)",
+                ),
+            );
+
+        assert.equal(
+            result.status,
+            "Execution Unavailable",
+        );
+
+        assert.equal(
+            result.passedTests,
             0,
         );
 
-        assert.deepEqual(
-            result.testCases,
-            [],
+        assert.equal(
+            result.failedTests,
+            1,
+        );
+
+        assert.equal(
+            result.testCases.length,
+            1,
+        );
+
+        assert.equal(
+            result.testCases[0]?.status,
+            "Execution Unavailable",
+        );
+
+        assert.equal(
+            result.testCases[0]?.error,
+            "Docker executable not found.",
         );
     },
 );
@@ -662,7 +825,6 @@ test(
 
         fake.kill = (() => {
             killed = true;
-
             return true;
         }) as ChildProcessWithoutNullStreams["kill"];
 
@@ -720,6 +882,11 @@ test(
         assert.equal(
             result.testCases[0]?.status,
             "Timeout",
+        );
+
+        assert.equal(
+            result.testCases[0]?.error,
+            "Execution timed out.",
         );
     },
 );
