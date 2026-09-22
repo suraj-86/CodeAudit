@@ -6,6 +6,7 @@ export const UPLOAD_LIMITS = {
   batch: {
     maxSubmissions: 100,
 },
+
 } as const;
 
 export const SUPPORTED_LANGUAGES = {
