@@ -433,32 +433,69 @@ a high correctness score and low structural similarity.
 
 ## 12. AI-Assisted Analysis
 
-AI analysis is a separate pipeline:
+AI analysis is implemented as a separate provider-backed pipeline:
 
 ``` text
-Source Code
-    ↓
-AI Analysis Adapter
-    ↓
-External Provider
-    ↓
-Provider Result
-    ↓
-Normalized AI Indicator
+Source Code + Language
+        ↓
+POST /api/analyze/ai
+        ↓
+AIAnalysisService
+        ↓
+AIAnalysisProvider
+        ↓
+GeminiAnalysisProvider
+        ↓
+Google Gemini API
+        ↓
+Structured JSON
+        ↓
+Validation / Normalization
+        ↓
+AIAnalysisResult
 ```
 
-The system should not claim:
+The current provider uses Google Gemini through the `@google/genai` SDK. The default model is `gemini-3-flash-preview`. The model can be overridden through `GEMINI_MODEL`.
+
+The provider is configured using:
+
+- `GEMINI_API_KEY`;
+- optional `GEMINI_MODEL`;
+- optional `GEMINI_TIMEOUT_MS`, default `15000` milliseconds.
+
+The provider requests a structured JSON response containing:
+
+- `indicator` from 0 to 1;
+- `confidence` from 0 to 1;
+- `observations`, each containing a category and concrete description.
+
+The internal result adds:
+
+- provider identifier;
+- availability state;
+- normalized label;
+- mandatory disclaimer;
+- controlled error information when unavailable.
+
+The current label mapping is deterministic:
+
+``` text
+indicator < 0.34       → low
+indicator < 0.67       → medium
+otherwise              → high
+```
+
+The system does not claim:
 
 > "72% of this code was written by AI."
 
-Instead, it should use wording such as:
+The indicator represents observable characteristics associated with AI-assisted generation. It is not a validated probability of authorship. The API and result model explicitly describe it as a probabilistic indicator only.
 
-> "AI-generated likelihood indicator: 72%."
+The provider prompt instructs the model not to claim authorship, not to state that a specific percentage of code was AI-generated, and not to treat formatting, comments, common idioms, or standard libraries as proof of AI generation.
 
-The exact interpretation depends on the selected provider.
+The provider validates the returned JSON before exposing it. Invalid indicators, confidence values, missing observations, malformed JSON, or incomplete observations are converted into controlled unavailable results.
 
-The result must include provider/availability information where
-appropriate.
+Timeouts are handled with `AbortController` and a bounded request race. A timeout or provider exception produces an unavailable result rather than crashing the API.
 
 ------------------------------------------------------------------------
 

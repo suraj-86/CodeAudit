@@ -107,6 +107,8 @@ Upload → Validate → Analyze → Explain → Compare → Report.
 
 A successful V1 should allow a user to compare source files structurally, optionally evaluate them against test cases, optionally obtain an external AI-analysis result, and understand the evidence behind the results.
 
+The backend implementation now includes the AI-analysis capability through a Gemini provider with structured results, timeout handling, graceful failure behavior, and an explicit probabilistic disclaimer. Frontend presentation and report integration remain later roadmap work.
+
 ## 8. Long-Term Direction
 
 Future versions may add persistent projects, saved analyses, authenticated workspaces, richer execution environments, more sophisticated semantic analysis, or integrations with repositories and educational systems.

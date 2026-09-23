@@ -65,11 +65,19 @@ unique pairwise comparisons, subject to configured resource limits.
 
 ### 5. AI-Assisted Analysis
 
-CodeAudit can optionally use an external AI-analysis service.
+CodeAudit can use an external AI-analysis service when configured.
 
-This is intentionally independent of the AST engine.
+The current V1 implementation uses Google Gemini through `@google/genai`, behind an `AIAnalysisProvider` abstraction and `AIAnalysisService`. The default model is `gemini-3-flash-preview`.
 
-AI results are presented as probabilistic indicators and are **not treated as proof of AI authorship**.
+Configuration is environment-based:
+
+- `GEMINI_API_KEY` — API credential;
+- `GEMINI_MODEL` — optional model override;
+- `GEMINI_TIMEOUT_MS` — optional timeout in milliseconds, default 15000.
+
+The AI endpoint accepts a programming language and source code and returns a normalized result containing availability, provider, indicator, label, confidence, observations, disclaimer, and controlled error information when unavailable.
+
+AI results are presented as probabilistic indicators and are **not treated as proof of AI authorship**. They remain independent of AST structural similarity, exact matching, and functional correctness.
 
 ### 6. Explainable Results
 
@@ -224,10 +232,16 @@ Development should proceed in small, focused increments.
 
 ## Project Status
 
-**Stage:** Project definition and documentation.
+**Current stage:** Backend analysis foundation through Phase 8.
 
-Implementation has not yet begun.
+Completed backend phases include:
 
-## License
+- Phase 1 — File Upload & Validation
+- Phase 2 — Exact Match Engine
+- Phase 3 — AST Structural Engine
+- Phase 4 — N-Gram & Similarity Engine
+- Phase 6 — Batch & Reference Analysis
+- Phase 7 — Code Execution & Testing (current Python/Docker execution capability)
+- Phase 8 — AI-Assisted Analysis (Gemini provider)
 
-To be decided before the first public release.
+Phase 5 comparison UI remains deferred under the backend-first implementation sequence. Phase 9 reporting and Phase 10 hardening/evaluation remain future roadmap work.

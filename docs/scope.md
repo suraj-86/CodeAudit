@@ -146,13 +146,25 @@ Code execution must be isolated from the main application process.
 
 ### 2.9 AI-Assisted Analysis
 
-AI-related analysis is an independent feature.
+AI-related analysis is an independent V1 feature.
 
-CodeAudit may send source code or an appropriate representation to a selected external AI-analysis service when configured.
+CodeAudit sends source code and the selected programming language to the configured external AI-analysis provider. The current implementation uses Google Gemini through the `@google/genai` SDK. The default model is `gemini-3-flash-preview`, with optional model override through `GEMINI_MODEL`.
 
-The UI must describe the result as a probabilistic indicator, such as an AI-likelihood score, rather than proof that AI authored a specific percentage of the code.
+The AI-analysis capability includes:
 
-The exact provider, API, pricing, limits, data policy, and reliability must be evaluated before implementation.
+- provider abstraction;
+- Gemini provider implementation;
+- structured JSON response validation;
+- indicator and confidence normalization;
+- categorized observations;
+- deterministic `low`/`medium`/`high` labels;
+- timeout handling;
+- graceful unavailable results;
+- explicit probabilistic disclaimer.
+
+The provider is configured through `GEMINI_API_KEY` and an optional `GEMINI_TIMEOUT_MS` setting.
+
+The result must be described as a probabilistic indicator rather than proof that AI authored a specific percentage of the code. AI analysis remains independent of AST structural similarity, exact matching, and functional correctness.
 
 ### 2.10 Result Summary
 

@@ -112,11 +112,19 @@ The system shall report pass, fail, runtime error, compilation error, timeout, u
 
 ### FR-16: AI Analysis
 
-The system shall optionally invoke a configured external AI-analysis service.
+The system shall optionally invoke a configured external AI-analysis service through a provider abstraction.
+
+The current V1 implementation shall provide a Gemini provider using the `@google/genai` SDK. The default model shall be `gemini-3-flash-preview`, with optional `GEMINI_MODEL` override. Provider credentials shall be supplied through `GEMINI_API_KEY`.
+
+The AI-analysis endpoint shall accept a programming language and non-empty source code, invoke the provider, validate the provider response, and return a normalized AI-analysis result.
 
 ### FR-17: AI Result Qualification
 
 The system shall present AI-analysis results as probabilistic indicators and shall not state that the result proves AI authorship.
+
+The result shall expose availability, provider, indicator, label, confidence where available, observations, and a disclaimer.
+
+The system shall not describe the indicator as a proven probability of authorship or as a percentage of code written by AI.
 
 ### FR-18: Result Summary
 
@@ -125,6 +133,13 @@ The system shall provide a consolidated analysis result without incorrectly merg
 ### FR-19: Report Generation
 
 The system shall optionally generate a downloadable report.
+
+
+### FR-21: AI Provider Failure Handling
+
+The system shall return a controlled unavailable result when the AI provider is not configured, times out, returns an empty response, returns invalid structured data, or raises a provider error.
+
+The AI provider request shall be bounded by a configurable timeout. The current default is 15 seconds.
 
 ### FR-20: Temporary Data Handling
 
@@ -200,4 +215,4 @@ The current focused validation recorded:
 
 The current Docker isolation implementation is a V1 baseline. Stronger production hardening remains part of Phase 10.
 
-The final comparison UI, AI-provider integration, report generation, and multi-language execution workers remain later implementation work.
+The final comparison UI, report generation, and multi-language execution workers remain later implementation work. Phase 8 AI-provider integration is now implemented and separately validated.

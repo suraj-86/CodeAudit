@@ -276,21 +276,63 @@ The endpoint must never execute arbitrary code inside the primary API process.
 
 ### POST /api/analyze/ai
 
-Accepts source code or an approved normalized representation, depending on provider requirements.
+The current V1 implementation accepts a JSON request containing source code and its programming language.
 
-The response should normalize provider output:
+Request:
+
+```json
+{
+  "language": "python",
+  "source": "print(\"hello\")"
+}
+```
+
+Validation requirements:
+
+- `language` must be a non-empty string;
+- `source` must be a non-empty string.
+
+The endpoint delegates the request to `AIAnalysisService`, which uses the configured `AIAnalysisProvider`. The current provider implementation is Gemini.
+
+Successful response model:
 
 ```json
 {
   "available": true,
-  "provider": "configured-provider",
-  "indicator": 0.71,
-  "label": "high",
-  "disclaimer": "AI-analysis results are probabilistic and are not proof of authorship."
+  "provider": "gemini",
+  "indicator": 0.10,
+  "label": "low",
+  "confidence": 0.90,
+  "observations": [
+    {
+      "category": "Code Complexity",
+      "description": "..."
+    }
+  ],
+  "disclaimer": "AI analysis is a probabilistic indicator only. It does not prove that code was written by AI and should not be treated as proof of authorship."
 }
 ```
 
-The actual provider name and schema will be determined later.
+The exact numeric values are provider-generated and are not fixed by the API contract.
+
+The normalized result model is:
+
+- `available` — whether a provider result was obtained;
+- `provider` — provider identifier;
+- `indicator` — optional value from 0 to 1;
+- `label` — `low`, `medium`, `high`, or `unavailable`;
+- `confidence` — optional value from 0 to 1;
+- `observations` — zero or more `{ category, description }` objects;
+- `disclaimer` — mandatory limitation statement;
+- `error` — optional controlled failure description.
+
+The current Gemini provider uses `gemini-3-flash-preview` by default. `GEMINI_MODEL` may override the model. `GEMINI_API_KEY` configures the provider credential, and `GEMINI_TIMEOUT_MS` controls the request timeout with a 15-second default.
+
+The provider requests structured JSON and validates the returned indicator, confidence, and observations before exposing them through the API.
+
+If the API key is absent, the provider request times out, Gemini returns an empty or malformed response, or the provider raises an error, the system returns a controlled unavailable result rather than crashing the server.
+
+The AI indicator is independent from exact matching, AST similarity, and functional correctness. It must not be interpreted as proof of authorship.
 
 ## 11. Report Generation
 

@@ -157,3 +157,56 @@ Any material architectural or scope change should:
 
 **Reason:** Upload/analysis language support and execution-worker support are distinct capabilities.
 
+
+
+---
+
+# Phase 8 Decisions
+
+## Decision 026 — AI Provider Abstraction
+
+**Decision:** AI analysis is implemented behind an `AIAnalysisProvider` interface and an `AIAnalysisService` delegation layer.
+
+**Reason:** Provider-specific SDK details should remain isolated so another provider can be introduced without rewriting the API contract or analysis service.
+
+## Decision 027 — Gemini as the Current V1 AI Provider
+
+**Decision:** The current V1 AI-analysis provider is Google Gemini, integrated through the `@google/genai` SDK.
+
+**Reason:** Gemini provides the required structured generation capability for the current backend implementation while fitting the provider-adapter architecture.
+
+## Decision 028 — Gemini Model Configuration
+
+**Decision:** The default Gemini model is `gemini-3-flash-preview`, with `GEMINI_MODEL` available as an environment-based override.
+
+**Reason:** Model selection should be configurable without changing provider implementation code.
+
+## Decision 029 — Environment-Based AI Configuration
+
+**Decision:** Gemini credentials and operational configuration must be supplied through environment variables.
+
+**Configuration:**
+
+- `GEMINI_API_KEY` — required to enable the provider;
+- `GEMINI_MODEL` — optional model override;
+- `GEMINI_TIMEOUT_MS` — optional positive timeout, default 15000 ms.
+
+**Reason:** Secrets must not be committed to source control, and operational configuration should remain deployment-specific.
+
+## Decision 030 — Structured AI Result Contract
+
+**Decision:** The provider must return structured JSON containing an indicator, confidence, and observations, which are validated before being exposed through the API.
+
+**Reason:** A stable internal result model is required to prevent provider-specific response formats from leaking into the rest of CodeAudit.
+
+## Decision 031 — Graceful AI Failure
+
+**Decision:** Missing configuration, timeout, empty responses, malformed provider output, and provider errors are represented as controlled `unavailable` results.
+
+**Reason:** External AI services are inherently dependency-bound and must not crash or destabilize the CodeAudit API when unavailable.
+
+## Decision 032 — AI Indicator Is Not Authorship Proof
+
+**Decision:** AI analysis remains a probabilistic indicator and must not be described as proof or as a validated probability of authorship.
+
+**Reason:** The implementation can inspect observable characteristics, but it cannot establish authorship from those characteristics alone. The disclaimer is therefore part of the result contract.

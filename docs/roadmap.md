@@ -213,19 +213,59 @@ Goal: add independent AI-related analysis.
 
 Tasks:
 
-- research suitable providers;
-- evaluate API availability and terms;
-- create provider adapter;
-- implement timeout/failure handling;
-- normalize provider output;
-- add clear disclaimer;
-- avoid presenting AI probability as proof.
+- research and select a suitable external provider;
+- create a provider adapter and service boundary;
+- implement Gemini API integration;
+- support configurable model selection;
+- implement timeout and failure handling;
+- normalize provider output into the CodeAudit result model;
+- add clear probabilistic disclaimer;
+- avoid presenting the indicator as proof of AI authorship;
+- expose the capability through the backend API.
+
+### Implemented V1 Scope
+
+Phase 8 establishes the backend AI-analysis subsystem with:
+
+- `AIAnalysisProvider` abstraction;
+- `AIAnalysisService` delegation layer;
+- `GeminiAnalysisProvider`;
+- Google Gemini API integration through `@google/genai`;
+- default model `gemini-3-flash-preview`;
+- optional `GEMINI_MODEL` override;
+- `GEMINI_API_KEY` environment configuration;
+- configurable `GEMINI_TIMEOUT_MS` with a 15-second default;
+- JSON response schema for indicator, confidence, and observations;
+- indicator normalization into `low`, `medium`, or `high`;
+- graceful `unavailable` results when the API is not configured or a provider request fails;
+- timeout cancellation through `AbortController`;
+- malformed/invalid provider-output validation;
+- the `POST /api/analyze/ai` endpoint;
+- an explicit AI-analysis disclaimer in successful and unavailable responses.
+
+The AI pipeline remains independent of the AST structural engine and does not combine AI analysis, structural similarity, exact matching, or correctness into a universal score.
+
+### Validation
+
+Phase 8 validation recorded:
+
+- Gemini provider tests: **6/6 passed**;
+- AI analysis service tests: **2/2 passed**;
+- TypeScript typecheck: **passed**;
+- backend build: **passed**;
+- manual `POST /api/analyze/ai` integration request with a configured Gemini key: **HTTP 200 / available result returned**.
+
+The integration test also confirmed that the provider can return a normalized indicator, confidence value, observations, and disclaimer through the API.
+
+### Boundary
+
+Phase 8 establishes the backend AI-analysis capability. It does not claim that the AI indicator is a scientifically validated probability of authorship, nor does it complete frontend integration, report generation, provider-independent production hardening, or broader empirical evaluation. Those concerns remain separate roadmap responsibilities.
 
 Exit condition:
 
 The feature works independently from the AST engine and fails gracefully when unavailable.
 
-**Status: NOT STARTED**
+**Status: COMPLETE**
 
 ---
 
