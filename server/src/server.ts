@@ -1,11 +1,12 @@
+import "dotenv/config";
+
 import cors from "cors";
-import dotenv from "dotenv";
 import express from "express";
 
 import uploadRouter from "./routes/upload.routes.js";
 import { generalRateLimiter } from "./middleware/rate-limit.js";
 
-dotenv.config();
+import aiRouter from "./routes/ai.routes.js";
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.use("/api", uploadRouter);
+app.use("/api", aiRouter);
 
 app.listen(port, () => {
   console.log(`CodeAudit API running on http://localhost:${port}`);

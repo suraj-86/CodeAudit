@@ -8,7 +8,7 @@ import type {
     AIAnalysisResult,
 } from "./ai-analysis-result.js";
 
-const DEFAULT_MODEL = "gemini-2.5-flash";
+const DEFAULT_MODEL = "gemini-3-flash-preview";
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 const PROVIDER_NAME = "gemini";
