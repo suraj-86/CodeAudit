@@ -81,7 +81,7 @@ test("ReportService generates a coherent report", () => {
     result.summary,
     /AI-assisted indicator: 40\.00%/,
   );
-  
+
     assert.match(
     result.summary,
     /Evidence items: 1/,

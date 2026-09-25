@@ -13,17 +13,17 @@ const reportRenderer = new PdfReportRenderer();
 router.post("/reports", async (req, res) => {
   const validation = validateReportInput(req.body);
 
-if (!validation.valid) {
-  return res.status(400).json({
-    error: {
-      code: "REPORT_INPUT_INVALID",
-      message: validation.reason,
-      details: null,
-    },
-  });
-}
+  if (!validation.valid) {
+    return res.status(400).json({
+      error: {
+        code: "REPORT_INPUT_INVALID",
+        message: validation.reason ?? "Invalid report input.",
+        details: null,
+      },
+    });
+  }
 
-const input = req.body as ReportInput;
+  const input = req.body as ReportInput;
 
   try {
     const report = reportService.generateReport(input);

@@ -46,6 +46,8 @@ export class PdfReportRenderer implements ReportRenderer {
       const font = options?.font ?? regularFont;
       const size = options?.size ?? 10;
 
+      addPageIfNeeded(lineHeight);
+
       page.drawText(text, {
         x: margin,
         y,
@@ -91,6 +93,8 @@ export class PdfReportRenderer implements ReportRenderer {
     };
 
     // Title
+    addPageIfNeeded(30);
+
     page.drawText(report.title, {
       x: margin,
       y,
@@ -229,8 +233,29 @@ export class PdfReportRenderer implements ReportRenderer {
 
       if (ai.disclaimer) {
         y -= 4;
-        drawLabelValue("Disclaimer", ai.disclaimer);
+        drawLabelValue("AI Disclaimer", ai.disclaimer);
       }
+    }
+
+    // Evidence
+    if (
+      report.input.evidence &&
+      report.input.evidence.length > 0
+    ) {
+      drawHeading("Evidence");
+
+      for (const evidence of report.input.evidence) {
+        drawLabelValue(
+          "Evidence",
+          `[${evidence.category}] ${evidence.description}`,
+        );
+      }
+    }
+
+    // Report disclaimer
+    if (report.input.disclaimer) {
+      drawHeading("Disclaimer");
+      drawText(report.input.disclaimer);
     }
 
     // Footer
@@ -239,7 +264,7 @@ export class PdfReportRenderer implements ReportRenderer {
     y -= 12;
 
     page.drawText(
-      "CodeAudit — analysis results are informational and should be interpreted within their documented limitations.",
+      "CodeAudit - analysis results are informational and should be interpreted within their documented limitations.",
       {
         x: margin,
         y,

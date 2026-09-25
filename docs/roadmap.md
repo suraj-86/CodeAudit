@@ -273,22 +273,61 @@ The feature works independently from the AST engine and fails gracefully when un
 
 Goal: provide a professional result artifact.
 
-Tasks:
+### Implemented V1 Scope
 
-- report layout;
-- hashes;
-- correctness;
-- similarity;
-- AI indicator;
-- evidence;
-- disclaimer;
-- PDF generation.
+Phase 9 establishes the backend reporting and PDF-generation capability with:
+
+- `ReportInput` and `ReportResult` reporting models;
+- `ReportService` for constructing coherent analysis reports;
+- report metadata including report ID and generation timestamp;
+- project name and analyzed source-file information;
+- SHA-256 hashes for analyzed source files when available;
+- correctness results including source status, passed tests, failed tests, execution time, and comparison status;
+- structural similarity information including similarity percentage, threshold, and suspicious indicator;
+- AI-assisted analysis information including availability, provider, label, indicator, confidence, observations, and AI disclaimer;
+- evidence items with category and description;
+- report-level disclaimer;
+- `PdfReportRenderer` using `pdf-lib`;
+- structured PDF sections for summary, analyzed files, correctness, structural similarity, AI-assisted analysis, evidence, and disclaimer;
+- multi-page PDF handling;
+- PDF output suitable for API responses.
+
+The reporting layer keeps the individual analysis dimensions separate. It does not combine correctness, structural similarity, or AI-assisted analysis into a universal score.
+
+### API
+
+The reporting capability is exposed through:
+
+- `POST /api/reports`
+
+The endpoint validates the report input and returns a generated PDF document when the input is valid.
+
+Invalid report input is rejected with a structured `REPORT_INPUT_INVALID` response.
+
+### Validation
+
+Phase 9 validation recorded:
+
+- `ReportService` test: **passed**;
+- `PdfReportRenderer` test: **passed**;
+- combined reporting tests: **2/2 passed**;
+- TypeScript typecheck: **passed**;
+- API validation for an empty `sourceFiles` array: **HTTP 400** with the expected validation error;
+- API report generation with a valid source-file input: **successful PDF generated**;
+- generated PDF verified to begin with the `%PDF-` signature;
+- generated PDF file successfully written during API validation.
+
+The PDF renderer test validates the generated PDF structure/signature rather than searching compressed PDF binary data for readable text.
+
+### Boundary
+
+Phase 9 establishes backend report generation and PDF rendering. It does not include frontend report presentation, deployment hardening, load testing, or broader evaluation. Those concerns remain part of later roadmap work.
 
 Exit condition:
 
 A user can generate a coherent report from an analysis.
 
-**Status: NOT STARTED**
+**Status: COMPLETE**
 
 ---
 
