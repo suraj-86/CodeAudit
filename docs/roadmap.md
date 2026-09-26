@@ -331,34 +331,366 @@ A user can generate a coherent report from an analysis.
 
 ---
 
-## Phase 10 — Hardening & Evaluation
 
-Goal: prepare for demonstration and deployment.
+## Roadmap Reshaping After Phase 9
 
-Tasks:
+Phases 0–9 remain unchanged from the original CodeAudit roadmap and documentation.
 
-- security testing;
-- rate-limit testing;
-- malformed-input testing;
-- memory/load testing;
-- parser failure testing;
-- execution isolation testing;
-- AI-provider failure testing;
-- UI polish;
-- deployment testing;
-- documentation verification.
+After Phase 9, the development workflow is deliberately reshaped.
 
-Exit condition:
+The reason for this change is that the backend now contains the major independent analysis capabilities and report-generation foundation, while the remaining work is primarily about connecting those capabilities into a coherent backend workflow, hardening the backend API, and then building the frontend as a separate application layer.
 
-The V1 workflow is stable and demonstrable.
+The roadmap is therefore **not being rewritten retrospectively**. Phases 0–9 remain the historical/source-of-truth record exactly as previously documented.
+
+Only the roadmap after Phase 9 is reshaped.
+
+The new structure is:
+
+```text
+Phase 9 — Reports
+        ↓
+ROADMAP RESHAPED
+        ↓
+Phase 10 — Backend Integration
+        ↓
+Phase 11 — Backend API Hardening
+        ↓
+Phase 12 — Frontend Foundation
+        ↓
+Phase 13 — Frontend Results & Analysis UX
+        ↓
+Phase 14 — End-to-End Evaluation & Release
+```
+
+This creates a clear separation between:
+
+1. completing and integrating the backend;
+2. hardening the backend API;
+3. establishing the frontend;
+4. building the frontend analysis experience;
+5. evaluating and releasing the complete application.
+
+The project remains a **15-phase roadmap overall: Phase 0 through Phase 14**.
+
+---
+
+# Phase 10 — Backend Integration
+
+**Goal:** connect the existing backend capabilities into coherent CodeAudit application workflows.
+
+This phase focuses exclusively on backend integration. It does **not** begin frontend development.
+
+## Tasks
+
+- connect upload and input validation with the analysis workflow;
+- integrate exact matching into the application workflow;
+- integrate structural analysis;
+- integrate batch analysis;
+- integrate reference analysis where already supported by the existing project scope;
+- integrate execution/correctness analysis;
+- integrate AI-assisted analysis;
+- integrate report generation;
+- establish coherent analysis orchestration;
+- ensure existing result models can flow between capabilities;
+- resolve API workflow gaps;
+- establish consistent backend workflow boundaries;
+- ensure analysis results can be passed into report generation;
+- ensure failures in one capability are represented without silently corrupting unrelated results.
+
+The existing analysis capabilities should remain conceptually independent.
+
+For example:
+
+- structural similarity must remain distinct from exact matching;
+- AI-assisted analysis must remain independent from AST analysis;
+- correctness must remain a separate analytical signal;
+- report generation must consume analysis results rather than become another analysis method.
+
+The integration layer must not introduce an undocumented universal score.
+
+## Exit condition
+
+The backend can execute the intended CodeAudit workflow coherently from validated input through the applicable analysis capabilities, results, evidence, and report generation.
 
 **Status: NOT STARTED**
 
 ---
 
+# Phase 11 — Backend API Hardening
+
+**Goal:** make the integrated backend stable, predictable, and ready to become the frontend's API contract.
+
+This phase focuses on verification, robustness, and API quality rather than introducing unrelated analysis functionality.
+
+## Tasks
+
+### Validation
+
+- malformed-input testing;
+- incomplete-input testing;
+- unsupported-input testing;
+- report-input validation;
+- endpoint validation consistency.
+
+### API behavior
+
+- consistent success responses;
+- consistent error responses;
+- meaningful error codes;
+- appropriate HTTP status codes;
+- failure-state verification;
+- API contract verification.
+
+### Security and robustness
+
+- upload-limit testing;
+- rate-limit testing;
+- parser failure testing;
+- execution isolation testing;
+- execution timeout testing;
+- resource-limit testing;
+- AI-provider failure testing;
+- report-generation failure testing;
+- unexpected-input handling.
+
+### Testing
+
+- backend integration tests;
+- endpoint-level tests where appropriate;
+- regression testing of existing analysis capabilities;
+- typecheck;
+- build verification.
+
+### Documentation
+
+- verify API specification;
+- verify configuration/environment requirements;
+- document relevant failure states;
+- document supported capabilities and limitations.
+
+## Exit condition
+
+The backend API is sufficiently stable, validated, and documented for frontend development to depend on it.
+
+**Status: NOT STARTED**
+
+---
+
+# Phase 12 — Frontend Foundation
+
+**Goal:** establish the CodeAudit frontend as a separate application layer on top of the stable backend.
+
+This is the first dedicated frontend phase.
+
+## Tasks
+
+- establish frontend application structure;
+- define frontend architecture;
+- establish routing/navigation;
+- create the CodeAudit application shell;
+- create reusable UI components;
+- establish API client/service layer;
+- connect frontend to backend APIs;
+- implement source/project input workflow;
+- implement upload interface;
+- implement language/capability selection where required;
+- implement loading states;
+- implement API error states;
+- implement unavailable-capability states;
+- configure frontend/backend environment handling.
+
+The frontend should consume the documented backend APIs rather than reproduce backend analysis logic.
+
+## Exit condition
+
+A user can enter the CodeAudit workflow through the frontend, provide valid input, communicate with the backend, and receive correctly handled success, loading, and error states.
+
+**Status: NOT STARTED**
+
+---
+
+# Phase 13 — Frontend Results & Analysis UX
+
+**Goal:** turn backend analysis results into a complete and understandable CodeAudit user experience.
+
+## Tasks
+
+### Analysis workflow
+
+- analysis progress/status;
+- result summary;
+- exact-match results;
+- structural similarity results;
+- batch comparison results;
+- reference comparison results;
+- execution/correctness results;
+- AI-assisted analysis results.
+
+### Evidence and interpretation
+
+- evidence display;
+- observations;
+- similarity information;
+- correctness information;
+- AI indicator and confidence where available;
+- AI limitations/disclaimer;
+- clear separation of independent analytical signals.
+
+The interface must not imply that:
+
+- structural similarity proves authorship;
+- an AI indicator proves AI authorship;
+- correctness determines similarity;
+- multiple independent signals constitute a scientifically validated universal score.
+
+### Report experience
+
+- report-generation action;
+- report status;
+- PDF generation;
+- PDF download;
+- report-related error handling.
+
+### UX quality
+
+- empty states;
+- partial-result states;
+- failure states;
+- retry handling;
+- responsive layout;
+- basic UI polish;
+- accessible and understandable result presentation.
+
+## Exit condition
+
+A user can complete a meaningful CodeAudit analysis through the frontend and understand the results, evidence, limitations, and generated report.
+
+**Status: NOT STARTED**
+
+---
+
+# Phase 14 — End-to-End Evaluation & Release
+
+**Goal:** validate the complete CodeAudit V1 application and prepare it for demonstration and deployment.
+
+## Tasks
+
+### End-to-end workflow testing
+
+Verify the complete flow:
+
+```text
+Frontend
+   ↓
+API
+   ↓
+Input / Upload
+   ↓
+Analysis
+   ↓
+Results
+   ↓
+Evidence
+   ↓
+Report
+   ↓
+Frontend
+```
+
+Test applicable workflows including:
+
+- source upload;
+- exact comparison;
+- structural analysis;
+- batch analysis;
+- reference analysis;
+- correctness/execution;
+- AI-assisted analysis;
+- report generation;
+- failure and recovery paths.
+
+### Security and robustness
+
+- malformed requests;
+- oversized inputs;
+- unsupported files;
+- parser failures;
+- execution failures;
+- execution timeouts;
+- rate limits;
+- memory/load behavior;
+- execution isolation;
+- AI-provider failures;
+- report-generation failures.
+
+### Frontend verification
+
+- browser workflow;
+- loading states;
+- API error handling;
+- retry behavior;
+- unavailable capabilities;
+- responsive behavior;
+- production frontend build.
+
+### Deployment
+
+- production backend build;
+- production frontend build;
+- environment configuration;
+- CORS/API configuration;
+- backend deployment;
+- frontend deployment;
+- runtime verification;
+- deployment smoke tests.
+
+### Documentation
+
+- requirements verification;
+- architecture verification;
+- API documentation verification;
+- setup documentation;
+- deployment documentation;
+- known limitations;
+- final roadmap status;
+- demonstration checklist.
+
+## Exit condition
+
+The complete CodeAudit V1 workflow is stable, demonstrable, documented, and deployable.
+
+**Status: NOT STARTED**
+
+---
+
+# Post-Phase-9 Development Flow
+
+From Phase 10 onward, the development sequence is:
+
+```text
+Phase 10
+Backend Integration
+        ↓
+Phase 11
+Backend API Hardening
+        ↓
+Backend Stable
+        ↓
+Phase 12
+Frontend Foundation
+        ↓
+Phase 13
+Frontend Results & Analysis UX
+        ↓
+Phase 14
+End-to-End Evaluation & Release
+```
+
+This reshaping intentionally keeps backend integration, backend hardening, frontend foundation, frontend UX, and final release as separate phases.
+
 ## Development Rule
 
-Every phase follows:
+The established development workflow remains:
 
 ```text
 Inspect → Design → Implement → Test → Review → Commit → Push
@@ -366,4 +698,37 @@ Inspect → Design → Implement → Test → Review → Commit → Push
 
 No phase should silently expand into unrelated functionality.
 
-At the end of meaningful phases, update the relevant documentation.
+At the end of each meaningful phase:
+
+1. verify implementation against the phase goal;
+2. update relevant documentation;
+3. run the appropriate validation;
+4. commit the completed work;
+5. push to the repository.
+
+---
+
+# Current Position
+
+```text
+Phase 9  — Reports
+            COMPLETE
+
+            ↓
+     ROADMAP RESHAPED
+
+Phase 10 — Backend Integration
+            NEXT
+
+Phase 11 — Backend API Hardening
+            NOT STARTED
+
+Phase 12 — Frontend Foundation
+            NOT STARTED
+
+Phase 13 — Frontend Results & Analysis UX
+            NOT STARTED
+
+Phase 14 — End-to-End Evaluation & Release
+            NOT STARTED
+```
