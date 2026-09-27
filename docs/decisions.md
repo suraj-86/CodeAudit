@@ -210,3 +210,27 @@ Any material architectural or scope change should:
 **Decision:** AI analysis remains a probabilistic indicator and must not be described as proof or as a validated probability of authorship.
 
 **Reason:** The implementation can inspect observable characteristics, but it cannot establish authorship from those characteristics alone. The disclaimer is therefore part of the result contract.
+
+## Decision 033 — One Combined Workflow Endpoint Instead of Separate Reference/Testing Endpoints
+
+**Decision:** `POST /api/analyze/workflow` combines exact-match, structural similarity, execution/correctness, and AI analysis for a single submission (with an optional reference and optional test cases) into one call and one result, rather than exposing the originally specced separate `/api/analyze/reference` and `/api/test/run` endpoints.
+
+**Reason:** The Phase 10 goal is a coherent workflow, not a one-to-one mapping of every analysis capability to its own endpoint. A single response shaped for direct use as `ReportInput` avoids requiring the client to call multiple endpoints and hand-assemble the report request itself.
+
+## Decision 034 — Batch Analysis Always Requires a Reference
+
+**Decision:** `POST /api/analyze/batch` requires a `reference` submission on every call; there is no reference-less batch mode at the API layer.
+
+**Reason:** This follows the underlying `analyzeBatch()` orchestrator built in Phase 6, which always produces reference comparisons alongside the pairwise matrix. Phase 10 exposes that existing behavior rather than redesigning it.
+
+## Decision 035 — Explicit Warnings Instead of Silent Capability Skips
+
+**Decision:** Whenever the workflow orchestrator skips a capability (unsupported language, missing reference, missing test cases, AI disabled or failed), it records a human-readable entry in a `warnings` array rather than omitting the field silently or failing the request.
+
+**Reason:** Silent gaps are indistinguishable from bugs. An explicit, itemized warning lets a caller (and a future frontend) show exactly what wasn't evaluated and why, consistent with the project's "no undocumented universal score" principle — nothing is folded into or hidden from the result.
+
+## Decision 036 — Structural/Execution Language Boundaries Are Enforced at the Integration Layer, Not Silently Passed Through
+
+**Decision:** The workflow and batch routes explicitly check submission language before invoking structural (C++-only) or execution (Python-only) analysis, returning a clear skip/warning or a structured `400` for unsupported languages, instead of letting the underlying Phase 3/Phase 7 code attempt the operation regardless.
+
+**Reason:** A pre-existing bug (`batch/compare.ts` parsing every submission as C++ regardless of its declared language) showed that without an explicit guard, an unsupported-language input silently produces meaningless results instead of a clear error. Phase 10 integration is exactly where these existing single-module boundaries needed to be enforced consistently, since it is the first layer where multiple languages and multiple capabilities meet in one request.

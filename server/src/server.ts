@@ -8,6 +8,8 @@ import { generalRateLimiter } from "./middleware/rate-limit.js";
 
 import aiRouter from "./routes/ai.routes.js";
 import reportRouter from "./routes/report.routes.js";
+import analyzeRouter from "./routes/analyze.routes.js";
+import batchRouter from "./routes/batch.routes.js";
 
 const app = express();
 
@@ -27,6 +29,8 @@ app.get("/api/health", (_req, res) => {
 app.use("/api", uploadRouter);
 app.use("/api", aiRouter);
 app.use("/api", reportRouter);
+app.use("/api", analyzeRouter);
+app.use("/api", batchRouter);
 
 app.listen(port, () => {
   console.log(`CodeAudit API running on http://localhost:${port}`);

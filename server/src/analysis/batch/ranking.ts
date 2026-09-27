@@ -8,7 +8,7 @@ export function rankSuspiciousPairs(
         .filter((comparison) => comparison.structuralSuspicious)
         .sort(
             (first, second) =>
-                second.structuralSimilarity -
-                first.structuralSimilarity,
+                (second.structuralSimilarity ?? 0) -
+                (first.structuralSimilarity ?? 0),
         );
 }

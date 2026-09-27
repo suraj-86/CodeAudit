@@ -248,6 +248,8 @@ comparisons are required.
 
 The endpoint must enforce a configurable maximum batch size.
 
+> **Implementation note (Phase 10):** the shipped `POST /api/analyze/batch` requires a `reference` file on every call and returns reference comparisons alongside the pairwise matrix in one response, rather than splitting batch and reference analysis into two separate endpoints. This follows the underlying `analyzeBatch()` orchestrator built in Phase 6, which always compares against a reference. It also currently requires `language: "cpp"` for every submission, since structural/reference comparison (Phase 6) is C++-only; other languages are rejected with a structured `UNSUPPORTED_LANGUAGE` error rather than silently mis-parsed. Request fields: `language` (form field), `submissions` (repeated file field), `reference` (single file field), optional `structuralThreshold` (0–1, default 0.75). Response fields: `submissions` (id/name/language only — no raw source bytes), `matrix`, `suspiciousPairs`, `referenceComparisons`.
+
 ## 8. Reference Analysis
 
 ### POST /api/analyze/reference
@@ -258,6 +260,8 @@ Accepts:
 - one or more submissions.
 
 The response should distinguish reference similarity from submission-to-submission similarity.
+
+> **Implementation note (Phase 10):** there is no standalone `/api/analyze/reference` endpoint. Reference comparison is exposed through `POST /api/analyze/batch` (see §7, for multiple C++ submissions against a reference) and through `POST /api/analyze/workflow` (see §6A, for a single submission against a reference, combined with exact-match, execution, and AI analysis).
 
 ## 9. Testing
 
@@ -271,6 +275,28 @@ Accepts:
 - execution configuration within safe limits.
 
 The endpoint must never execute arbitrary code inside the primary API process.
+
+> **Implementation note (Phase 10):** there is no standalone `/api/test/run` endpoint. Execution/correctness testing (Python only) is exposed through `POST /api/analyze/workflow` (see §6A) by supplying `testCases`; execution always runs inside the isolated Docker worker (`codeaudit/python`), never inside the primary API process, matching this requirement.
+
+## 6A. Combined Analysis Workflow
+
+### POST /api/analyze/workflow
+
+*(Added in Phase 10 — not part of the original spec above; documented here because it is the primary integration surface connecting §5 upload, §6 pairwise exact-match, §8 reference/structural analysis, §9 testing, §10 AI analysis, and §11 report generation into one call.)*
+
+Accepts (multipart form):
+
+- `source` (required file) — the submission to analyze;
+- `language` (required form field) — must match `source`'s extension per §4;
+- `reference` (optional file) — an expected/model solution to compare against; enables exact-match and, for C++, structural similarity;
+- `referenceLanguage` (optional form field) — defaults to `language`;
+- `testCases` (optional form field, JSON array of `{ id?, input, expectedOutput }`) — enables correctness/execution analysis, Python only;
+- `runAI` (optional form field, `"true"`/`"false"`, default `true`) — toggles AI-assisted analysis;
+- `structuralThreshold` (optional form field, 0–1, default 0.75).
+
+Returns a single JSON object containing `sourceFiles`, `correctness`, `similarity`, `aiAnalysis`, `evidence`, `disclaimer`, `generatedAt`, and `warnings` (an explicit, human-readable list of any capability that was skipped and why — wrong language, no reference, no test cases, AI disabled/failed). The response body (minus `warnings`) is intentionally shaped to be usable directly as the request body for `POST /api/reports` (§11).
+
+Every skipped capability is reported in `warnings` rather than silently omitted or causing a failure; an AI-provider error cannot fail the overall request.
 
 ## 10. AI Analysis
 

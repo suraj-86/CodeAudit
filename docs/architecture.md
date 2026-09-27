@@ -97,6 +97,8 @@ Response
 
 The orchestrator should not implement the AST algorithm itself.
 
+> **Implementation note (Phase 10):** the conceptual flow above is implemented as `AnalysisWorkflowOrchestrator` in `server/src/workflow/analysis-workflow.ts`, exposed via `POST /api/analyze/workflow`. It performs hashing (exact-match), delegates structural comparison to the AST engine (§6, C++ only), correctness to the testing engine (§7, Python only), and AI analysis to the AI adapter (§8) — each only when the request's language and inputs make that engine applicable — then normalizes the results into one object shaped for direct use by the reporting engine (§9). A second, narrower orchestrator, `analyzeBatch()` (`server/src/analysis/batch/orchestrator.ts`), handles the N-submissions-vs-reference case and is exposed via `POST /api/analyze/batch`. Neither orchestrator implements engine logic itself; both only route between engines and normalize results, matching the principle above.
+
 ## 6. AST Analysis Engine
 
 Responsibilities:

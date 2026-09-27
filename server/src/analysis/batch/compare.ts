@@ -10,9 +10,26 @@ export interface BatchPairComparison {
     exactMatch: boolean;
     hashA: string;
     hashB: string;
-    structuralSimilarity: number;
+    structuralSimilarity: number | null;
     structuralThreshold: number;
     structuralSuspicious: boolean;
+    structuralUnsupportedReason?: string;
+}
+
+/**
+ * Structural (AST) comparison currently supports C++ only, matching the
+ * boundary already enforced in ./reference.ts. A pair is only eligible
+ * for structural comparison when both submissions are C++; otherwise the
+ * pair is still exact-matched, but structural similarity is reported as
+ * unavailable rather than silently parsed as C++.
+ */
+function isStructurallySupported(
+    pair: SubmissionPair,
+): boolean {
+    return (
+        pair.first.language.toLowerCase() === "cpp" &&
+        pair.second.language.toLowerCase() === "cpp"
+    );
 }
 
 export function compareSubmissionPair(
@@ -23,6 +40,21 @@ export function compareSubmissionPair(
         pair.first.source,
         pair.second.source,
     );
+
+    if (!isStructurallySupported(pair)) {
+        return {
+            firstId: pair.first.id,
+            secondId: pair.second.id,
+            exactMatch: exactResult.exactMatch,
+            hashA: exactResult.hashA,
+            hashB: exactResult.hashB,
+            structuralSimilarity: null,
+            structuralThreshold,
+            structuralSuspicious: false,
+            structuralUnsupportedReason:
+                "Structural comparison currently supports C++ submissions only.",
+        };
+    }
 
     const firstSource = pair.first.source.toString("utf8");
     const secondSource = pair.second.source.toString("utf8");

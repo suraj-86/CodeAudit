@@ -86,6 +86,12 @@ if (differentResult.hashA === differentResult.hashB) {
     );
 }
 
+if (differentResult.structuralSimilarity === null) {
+    throw new Error(
+        "C++ pairs should always receive a structural similarity value.",
+    );
+}
+
 if (differentResult.structuralSimilarity <= 0) {
     throw new Error(
         "Related structural programs should have measurable similarity.",
@@ -107,3 +113,52 @@ if (differentResult.structuralSuspicious) {
 console.log("PASS: different pair comparison");
 
 console.log("PASS: batch pair comparison");
+
+const mixedLanguagePair: SubmissionPair = {
+    first: createSubmission(
+        "A",
+        "int main() { return 0; }",
+    ),
+    second: {
+        id: "B",
+        name: "B.py",
+        language: "python",
+        source: Buffer.from(
+            "print('hello')",
+            "utf8",
+        ),
+    },
+};
+
+const mixedLanguageResult = compareSubmissionPair(
+    mixedLanguagePair,
+    0.70,
+);
+
+if (mixedLanguageResult.structuralSimilarity !== null) {
+    throw new Error(
+        "Non-C++ pairs must not receive a fabricated structural similarity value.",
+    );
+}
+
+if (mixedLanguageResult.structuralSuspicious) {
+    throw new Error(
+        "Non-C++ pairs must never be flagged as structurally suspicious.",
+    );
+}
+
+if (!mixedLanguageResult.structuralUnsupportedReason) {
+    throw new Error(
+        "Non-C++ pairs must report why structural comparison was skipped.",
+    );
+}
+
+if (typeof mixedLanguageResult.exactMatch !== "boolean") {
+    throw new Error(
+        "Exact-match must still be computed regardless of structural support.",
+    );
+}
+
+console.log(
+    "PASS: non-C++ pairs skip structural comparison instead of being parsed as C++",
+);

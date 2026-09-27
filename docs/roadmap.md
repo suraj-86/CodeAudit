@@ -408,11 +408,52 @@ For example:
 
 The integration layer must not introduce an undocumented universal score.
 
-## Exit condition
+### Implemented V1 Scope
+
+Phase 10 identified three integration gaps in the Phase 1–9 codebase (each capability had been built and unit-tested in isolation, but never connected) and closed them:
+
+- code execution/correctness (Phase 7) had no route exposing `DefaultExecutionManager`/`DockerExecutionWorker` — it was unreachable from the API;
+- batch analysis (Phase 6) had no route exposing `analyzeBatch` — it was unreachable from the API;
+- no endpoint connected exact-match, structural, execution, and AI analysis into one workflow whose output could be handed to report generation without a client hand-assembling `ReportInput` itself.
+
+Delivered:
+
+- `AnalysisWorkflowOrchestrator` (`server/src/workflow/analysis-workflow.ts`) — runs exact-match, structural similarity (C++ only), correctness/execution (Python only), and AI-assisted analysis for a single submission (with an optional reference and optional test cases), assembling one result shaped to be used directly as `ReportInput`;
+- `POST /api/analyze/workflow` — multipart endpoint (`source`, optional `reference`, optional `testCases` JSON, `language`, `runAI`, `structuralThreshold`) wiring the orchestrator to HTTP, with structured `400` validation errors;
+- `POST /api/analyze/batch` — multipart endpoint wiring the previously-unrouted `analyzeBatch` to HTTP (`submissions[]`, `reference`, `language`), returning the pairwise matrix, ranked suspicious pairs, and reference comparisons, with submission source bytes stripped from the response;
+- `server/src/config/execution.ts` — production `ExecutionConfig` and the `codeaudit/python` Docker runtime constant, previously only present inline in test fixtures;
+- every skipped capability (wrong language, missing reference, missing test cases, AI disabled or failed) is reported as an explicit `warnings[]` entry rather than a silent gap or a crash;
+- a bug fix in `analysis/batch/compare.ts`: pairwise comparison previously parsed every submission as C++ unconditionally (no language guard, unlike `reference.ts`); it now returns `structuralSimilarity: null` with a stated reason for non-C++ pairs.
+
+### API
+
+The integration capability is exposed through:
+
+- `POST /api/analyze/workflow`
+- `POST /api/analyze/batch`
+
+Both endpoints validate their multipart input and return structured `400` errors (`SOURCE_REQUIRED`, `LANGUAGE_REQUIRED`, `REFERENCE_REQUIRED`, `SUBMISSIONS_REQUIRED`, `UNSUPPORTED_LANGUAGE`, `UPLOAD_VALIDATION_FAILED`, `STRUCTURAL_THRESHOLD_INVALID`, `TEST_CASES_INVALID`) rather than throwing.
+
+### Validation
+
+Phase 10 validation recorded:
+
+- TypeScript typecheck: **passed**;
+- full test suite: **63/63 passed** (57 pre-existing + 6 new orchestrator tests, plus a regression test for the language-guard bug fix);
+- live server smoke test, `/api/analyze/workflow` with two real C++ files (a Type-2/renamed-variable clone): correctly reported `exactMatch: false` and `structuralSimilarity: 1.0`;
+- that workflow result (minus `warnings`) fed directly into `POST /api/reports`: **successful PDF generated**, confirming the full upload → analyze → report chain;
+- live server smoke test, `/api/analyze/batch` with three C++ submissions and a reference: correct pairwise matrix, suspicious-pair ranking, and reference comparisons; response verified to no longer leak raw source bytes;
+- empty-body requests to both new endpoints verified to return structured `400`s rather than `500`s (an `undefined req.body` crash was found and fixed during this validation).
+
+### Boundary
+
+Phase 10 connects the backend capabilities that already existed. It does not add new analysis capabilities, does not extend structural analysis or execution beyond their existing C++-only / Python-only scope, and does not address the API-consistency and testing-framework concerns that are Phase 11's job (for example: `ai.routes.ts`'s error responses do not yet match the structured `{error:{code,message,details}}` envelope used elsewhere; there is still no single unified test-running convention). The Python execution path was validated via the existing unit-level fakes and the `DockerExecutionWorker` test suite; it was not exercised against a live Docker daemon during this integration pass, since no Docker daemon was available in the environment this work was done in — that should be verified in a real deployment before relying on it.
+
+Exit condition:
 
 The backend can execute the intended CodeAudit workflow coherently from validated input through the applicable analysis capabilities, results, evidence, and report generation.
 
-**Status: NOT STARTED**
+**Status: COMPLETE**
 
 ---
 
@@ -718,10 +759,10 @@ Phase 9  — Reports
      ROADMAP RESHAPED
 
 Phase 10 — Backend Integration
-            NEXT
+            COMPLETE
 
 Phase 11 — Backend API Hardening
-            NOT STARTED
+            NEXT
 
 Phase 12 — Frontend Foundation
             NOT STARTED
