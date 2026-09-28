@@ -28,6 +28,30 @@ test("GET /api/languages lists supported languages", async () => {
     );
 });
 
+test("GET /api/languages exposes per-language capabilities and upload limits", async () => {
+    const response = await request(app).get("/api/languages");
+
+    const byId = Object.fromEntries(
+        response.body.languages.map(
+            (entry: { id: string }) => [entry.id, entry],
+        ),
+    );
+
+    assert.equal(byId.cpp.capabilities.structural, true);
+    assert.equal(byId.cpp.capabilities.batch, true);
+    assert.equal(byId.cpp.capabilities.execution, false);
+    assert.equal(byId.python.capabilities.execution, true);
+    assert.equal(byId.python.capabilities.structural, false);
+    assert.equal(byId.java.capabilities.exactMatch, true);
+
+    assert.equal(typeof response.body.limits.maxFileSizeBytes, "number");
+    assert.equal(typeof response.body.limits.maxFiles, "number");
+    assert.equal(
+        typeof response.body.limits.maxBatchSubmissions,
+        "number",
+    );
+});
+
 test("an unmatched route returns a structured 404", async () => {
     const response = await request(app).get(
         "/api/this-route-does-not-exist",
@@ -347,4 +371,28 @@ test("a route's rate limiter returns 429 once its request budget is exhausted", 
         statuses.includes(429),
         "expected the rate limiter to reject at least one request",
     );
+});
+
+test("a rate-limited response uses the standard error envelope with a retry hint", async () => {
+    let limited;
+
+    // The AI route's budget is already exhausted by the previous test
+    // (per-route limiters are shared for the life of the process).
+    for (let attempt = 0; attempt < 3 && !limited; attempt += 1) {
+        const response = await request(app)
+            .post("/api/analyze/ai")
+            .send({ language: "python", source: "print(1)" });
+
+        if (response.status === 429) {
+            limited = response;
+        }
+    }
+
+    assert.ok(limited, "expected a 429 response");
+    assert.equal(limited.body.error.code, "RATE_LIMITED");
+    assert.equal(
+        typeof limited.body.error.details.retryAfterSeconds,
+        "number",
+    );
+    assert.ok(limited.body.error.details.retryAfterSeconds >= 1);
 });

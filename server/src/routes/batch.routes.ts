@@ -4,6 +4,7 @@ import { Router } from "express";
 
 import { upload } from "../config/upload.js";
 import { UPLOAD_LIMITS } from "../config/limits.js";
+import { supportsCapability } from "../config/capabilities.js";
 import { validateFileLanguage } from "../validation/file-validation.js";
 import { validateTotalUploadSize } from "../validation/upload-validation.js";
 import { createUploadRateLimiter } from "../middleware/rate-limit.js";
@@ -74,7 +75,7 @@ router.post(
             });
         }
 
-        if (language !== "cpp") {
+        if (!supportsCapability(language, "batch")) {
             return res.status(400).json({
                 error: {
                     code: "UNSUPPORTED_LANGUAGE",

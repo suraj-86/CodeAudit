@@ -1,3 +1,4 @@
+import { supportsCapability } from "../config/capabilities.js";
 import { calculateSha256 } from "../analysis/exact-match/hash.js";
 import { compareFiles } from "../analysis/exact-match/compare.js";
 import { parseCpp } from "../analysis/structural/cpp-parser.js";
@@ -62,12 +63,12 @@ const REPORT_DISCLAIMER =
     "authorship. Results should be interpreted by a qualified human " +
     "reviewer alongside other evidence.";
 
-function isCpp(file: WorkflowSourceFile): boolean {
-    return file.language.toLowerCase() === "cpp";
+function supportsStructural(file: WorkflowSourceFile): boolean {
+    return supportsCapability(file.language, "structural");
 }
 
-function isPython(file: WorkflowSourceFile): boolean {
-    return file.language.toLowerCase() === "python";
+function supportsExecution(file: WorkflowSourceFile): boolean {
+    return supportsCapability(file.language, "execution");
 }
 
 export class AnalysisWorkflowOrchestrator {
@@ -178,7 +179,10 @@ export class AnalysisWorkflowOrchestrator {
             return undefined;
         }
 
-        if (!isCpp(request.source) || !isCpp(request.reference)) {
+        if (
+            !supportsStructural(request.source) ||
+            !supportsStructural(request.reference)
+        ) {
             warnings.push(
                 "Structural similarity skipped: currently supported for C++ submissions only.",
             );
@@ -225,7 +229,7 @@ export class AnalysisWorkflowOrchestrator {
             return undefined;
         }
 
-        if (!isPython(request.source)) {
+        if (!supportsExecution(request.source)) {
             warnings.push(
                 `Correctness testing skipped: execution currently supports Python only ` +
                     `(submission language "${request.source.language}").`,
@@ -251,7 +255,7 @@ export class AnalysisWorkflowOrchestrator {
 
         let comparisonResult: ExecutionResult | undefined;
 
-        if (request.reference && isPython(request.reference)) {
+        if (request.reference && supportsExecution(request.reference)) {
             comparisonResult = await this.executionManager.execute(
                 {
                     source: request.reference.source.toString(

@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import { UPLOAD_LIMITS, SUPPORTED_LANGUAGES } from "../config/limits.js";
 import { upload } from "../config/upload.js";
+import { getLanguageCapabilities } from "../config/capabilities.js";
 import { validateFileLanguage } from "../validation/file-validation.js";
 import { validateTotalUploadSize } from "../validation/upload-validation.js";
 import { createUploadRateLimiter } from "../middleware/rate-limit.js";
@@ -18,11 +19,18 @@ router.get("/languages", (_req, res) => {
       id,
       label: config.label,
       extensions: config.extensions,
+      capabilities: getLanguageCapabilities(id),
     }),
   );
 
   res.status(200).json({
     languages,
+    limits: {
+      maxFileSizeBytes: UPLOAD_LIMITS.maxFileSizeBytes,
+      maxFiles: UPLOAD_LIMITS.maxFiles,
+      maxTotalSourceBytes: UPLOAD_LIMITS.maxTotalSourceBytes,
+      maxBatchSubmissions: UPLOAD_LIMITS.batch.maxSubmissions,
+    },
   });
 });
 
