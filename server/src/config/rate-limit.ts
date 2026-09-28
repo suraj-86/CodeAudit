@@ -7,4 +7,8 @@ export const RATE_LIMIT_CONFIG = {
     windowMs: 60 * 1000,
     max: 10,
   },
+  ai: {
+    windowMs: 60 * 1000,
+    max: 10,
+  },
 } as const;

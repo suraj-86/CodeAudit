@@ -3,7 +3,7 @@ import { Router, type Response } from "express";
 import { upload } from "../config/upload.js";
 import { EXECUTION_CONFIG, PYTHON_RUNTIME } from "../config/execution.js";
 import { validateFileLanguage } from "../validation/file-validation.js";
-import { uploadRateLimiter } from "../middleware/rate-limit.js";
+import { createUploadRateLimiter } from "../middleware/rate-limit.js";
 
 import { createDefaultExecutionManager } from "../analysis/execution/execution-manager.js";
 import type { TestCase } from "../analysis/execution/test-case.js";
@@ -16,6 +16,8 @@ import {
 } from "../workflow/analysis-workflow.js";
 
 const router = Router();
+
+const workflowRateLimiter = createUploadRateLimiter();
 
 const executionManager = createDefaultExecutionManager(
     EXECUTION_CONFIG,
@@ -85,7 +87,7 @@ function parseTestCases(raw: unknown): TestCase[] | undefined {
 
 router.post(
     "/analyze/workflow",
-    uploadRateLimiter,
+    workflowRateLimiter,
     upload.fields([
         { name: "source", maxCount: 1 },
         { name: "reference", maxCount: 1 },

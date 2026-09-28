@@ -234,3 +234,21 @@ Any material architectural or scope change should:
 **Decision:** The workflow and batch routes explicitly check submission language before invoking structural (C++-only) or execution (Python-only) analysis, returning a clear skip/warning or a structured `400` for unsupported languages, instead of letting the underlying Phase 3/Phase 7 code attempt the operation regardless.
 
 **Reason:** A pre-existing bug (`batch/compare.ts` parsing every submission as C++ regardless of its declared language) showed that without an explicit guard, an unsupported-language input silently produces meaningless results instead of a clear error. Phase 10 integration is exactly where these existing single-module boundaries needed to be enforced consistently, since it is the first layer where multiple languages and multiple capabilities meet in one request.
+
+## Decision 037 — One Central Error-Handling Middleware Instead of Per-Route Duplication
+
+**Decision:** A single Express error-handling middleware (`middleware/error-handler.ts`), registered once and last, converts `multer.MulterError`, malformed-JSON body-parser errors, and any other unhandled error into the standard `{error:{code,message,details}}` envelope. Individual routes no longer implement their own multer-error-handling logic.
+
+**Reason:** Before this, three of five upload-accepting routes had no multer-error handling at all, and the one that did (`/uploads`) duplicated logic that belonged in one place. A single backstop guarantees every route — including ones added later — gets consistent, structured error responses for these failure modes without each route author needing to remember to write it.
+
+## Decision 038 — Rate Limiters Are Factories, Not Shared Singletons
+
+**Decision:** `middleware/rate-limit.ts` exports factory functions (`createGeneralRateLimiter`, `createUploadRateLimiter`, `createAiRateLimiter`); each route that wants its own request budget calls the factory itself at module load, rather than importing one shared middleware instance.
+
+**Reason:** express-rate-limit keys its counter to the middleware instance's own internal store. A single exported instance reused across multiple `router.post(...)` mount points meant those routes silently shared one combined quota instead of each having their own — found by the Phase 11 endpoint test suite itself (unexpected `429`s), not by inspection.
+
+## Decision 039 — Legacy Plain-Script Tests Are Left As-Is
+
+**Decision:** 23 of 38 test files (mostly Phase 1–6 analysis modules) remain plain assertion scripts (`throw` + `console.log`) rather than being migrated to `node:test`-style files.
+
+**Reason:** `node --test` already runs and correctly fails these files as part of the unified `npm test` — each is reported as one aggregate pass/fail per file rather than per-assertion, which is a reporting-granularity inconsistency, not a functional gap. Rewriting 23 already-working legacy files for a cosmetic benefit was judged out of proportion to Phase 11's exit condition and carries needless regression risk; it remains a candidate for a dedicated, low-risk cleanup pass rather than being bundled into this phase.

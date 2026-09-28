@@ -1,14 +1,16 @@
 import { Router } from "express";
-import multer from "multer";
 
 import { UPLOAD_LIMITS, SUPPORTED_LANGUAGES } from "../config/limits.js";
 import { upload } from "../config/upload.js";
 import { validateFileLanguage } from "../validation/file-validation.js";
 import { validateTotalUploadSize } from "../validation/upload-validation.js";
-import { uploadRateLimiter } from "../middleware/rate-limit.js";
+import { createUploadRateLimiter } from "../middleware/rate-limit.js";
 import { compareFiles } from "../analysis/exact-match/compare.js";
 
 const router = Router();
+
+const compareRateLimiter = createUploadRateLimiter();
+const uploadsRateLimiter = createUploadRateLimiter();
 
 router.get("/languages", (_req, res) => {
   const languages = Object.entries(SUPPORTED_LANGUAGES).map(
@@ -26,6 +28,7 @@ router.get("/languages", (_req, res) => {
 
 router.post(
   "/analyze/compare",
+  compareRateLimiter,
   upload.fields([
     { name: "fileA", maxCount: 1 },
     { name: "fileB", maxCount: 1 },
@@ -69,54 +72,8 @@ router.post(
 
 router.post(
   "/uploads",
-  uploadRateLimiter,
-  (req, res, next) => {
-    upload.array("files", UPLOAD_LIMITS.maxFiles)(
-      req,
-      res,
-      (error) => {
-        if (error instanceof multer.MulterError) {
-          if (error.code === "LIMIT_FILE_SIZE") {
-            res.status(413).json({
-              error: {
-                code: "FILE_TOO_LARGE",
-                message: "One or more files exceed the 1 MB file-size limit.",
-                details: null,
-              },
-            });
-            return;
-          }
-
-          if (error.code === "LIMIT_FILE_COUNT") {
-            res.status(413).json({
-              error: {
-                code: "TOO_MANY_FILES",
-                message: "The upload exceeds the maximum file count.",
-                details: null,
-              },
-            });
-            return;
-          }
-
-          res.status(400).json({
-            error: {
-              code: "MALFORMED_UPLOAD",
-              message: error.message,
-              details: null,
-            },
-          });
-          return;
-        }
-
-        if (error) {
-          next(error);
-          return;
-        }
-
-        next();
-      },
-    );
-  },
+  uploadsRateLimiter,
+  upload.array("files", UPLOAD_LIMITS.maxFiles),
   (req, res) => {
     const language =
       typeof req.body.language === "string"

@@ -1,37 +1,9 @@
-import "dotenv/config";
+import { createApp } from "./app.js";
 
-import cors from "cors";
-import express from "express";
-
-import uploadRouter from "./routes/upload.routes.js";
-import { generalRateLimiter } from "./middleware/rate-limit.js";
-
-import aiRouter from "./routes/ai.routes.js";
-import reportRouter from "./routes/report.routes.js";
-import analyzeRouter from "./routes/analyze.routes.js";
-import batchRouter from "./routes/batch.routes.js";
-
-const app = express();
+const app = createApp();
 
 const port = Number(process.env.PORT) || 4000;
 
-app.use(cors());
-app.use(express.json());
-app.use("/api", generalRateLimiter);
-
-app.get("/api/health", (_req, res) => {
-  res.json({
-    status: "ok",
-    service: "CodeAudit API",
-  });
-});
-
-app.use("/api", uploadRouter);
-app.use("/api", aiRouter);
-app.use("/api", reportRouter);
-app.use("/api", analyzeRouter);
-app.use("/api", batchRouter);
-
 app.listen(port, () => {
-  console.log(`CodeAudit API running on http://localhost:${port}`);
+    console.log(`CodeAudit API running on http://localhost:${port}`);
 });

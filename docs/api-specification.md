@@ -384,6 +384,15 @@ Errors should follow a consistent structure:
 }
 ```
 
+> **Implementation note (Phase 11):** this envelope is now enforced for every route, including failure modes a route doesn't handle itself. A single central error-handling middleware (`middleware/error-handler.ts`, registered last in `app.ts`) converts three previously-inconsistent cases into this same shape:
+>
+> - a malformed upload (`multer.MulterError`, e.g. an oversized file) on any route that accepts files — `413 FILE_TOO_LARGE` / `413 TOO_MANY_FILES` / `400 UNEXPECTED_FILE_FIELD` / `400 MALFORMED_UPLOAD`;
+> - a malformed JSON request body — `400 MALFORMED_JSON`;
+> - an unmatched route — `404 NOT_FOUND`;
+> - any other unhandled error — `500 INTERNAL_SERVER_ERROR` (the underlying error is logged server-side and never included in the response).
+>
+> Before Phase 11, three of five upload-accepting routes had no multer-error handling at all and would fall through to Express's default HTML error page; `ai.routes.ts` used a bare `{error: "string"}` shape instead of this envelope. Both are fixed.
+
 ## 13. Important Error Cases
 
 The API should explicitly handle:
@@ -406,6 +415,8 @@ The API should explicitly handle:
 - AI provider timeout;
 - report-generation failure.
 
+> **Implementation note (Phase 11):** all of the above are covered, either by existing Phase 1–9 code or by Phase 10/11 additions, and exercised by `server/src/app.test.ts` (endpoint-level) plus the relevant unit tests. Two notes: "parser failure" — tree-sitter is error-tolerant by design and does not throw on malformed source; it produces `ERROR` nodes in the tree, which the structural comparison still scores (typically low), rather than crashing — verified with a garbage-C++ endpoint test. "execution timeout" / "compilation error" / "runtime error" are validated at the unit level via `docker-worker.test.ts`'s fake process runner; they were not re-verified against a real Docker daemon during Phase 10/11, since none was available in the environment this work was done in.
+
 ## 14. Rate Limiting
 
 At minimum, separate rate-limit policies should be considered for:
@@ -418,6 +429,8 @@ At minimum, separate rate-limit policies should be considered for:
 - report generation.
 
 Exact limits should be selected after measuring resource consumption.
+
+> **Implementation note (Phase 11):** every route that accepts files or calls an external/expensive capability has its own independent rate-limit bucket — `middleware/rate-limit.ts` exports *factories* (`createGeneralRateLimiter`, `createUploadRateLimiter`, `createAiRateLimiter`), and each route instantiates its own at module load, rather than importing one shared instance. This was a deliberate fix: earlier in Phase 11, `/uploads`, `/analyze/compare`, `/analyze/workflow`, and `/analyze/batch` all imported the *same* limiter instance and were found (via the endpoint test suite, not by inspection) to be silently sharing one combined request budget instead of each having their own 10/min. Current buckets: `general` (100/min, applied globally to `/api`), `upload` (10/min, one independent instance per upload-accepting route, including `/api/reports`), `ai` (10/min, for `/api/analyze/ai`).
 
 ## 15. API Versioning
 

@@ -513,7 +513,48 @@ This phase focuses on verification, robustness, and API quality rather than intr
 
 The backend API is sufficiently stable, validated, and documented for frontend development to depend on it.
 
-**Status: NOT STARTED**
+### Implemented V1 Scope
+
+Phase 11 audited every route for the inconsistencies and untested failure paths the roadmap calls out, and found concrete instances of each:
+
+- **No central error handling.** A malformed JSON body, an oversized/malformed file upload on three of the five upload-accepting routes, and any unmatched route all fell through to Express's default (HTML) error/404 pages instead of a structured JSON response.
+- **Inconsistent error envelope.** `ai.routes.ts` returned `{ error: "some string" }` while every other route already returned `{ error: { code, message, details } }`.
+- **A missing rate limiter.** `/api/analyze/compare` had no rate limiting at all.
+- **A shared rate-limiter bug**, found by the new endpoint test suite itself: `uploadRateLimiter` was one singleton instance mounted across four unrelated routes (`/uploads`, `/analyze/compare`, `/analyze/workflow`, `/analyze/batch`). Because express-rate-limit keys its counter to the middleware instance, all four routes were silently sharing one request budget instead of each having their own.
+- **An orphaned file.** `analysis/ast/cpp-parser-test.ts`, an unreferenced Phase-3 scratch script (no assertions, not matched by the test glob), was removed.
+
+Delivered:
+
+- `server/src/app.ts` — Express app construction split out from `server/src/server.ts`'s `listen()` call, so the app can be exercised by tests without binding a real network port; `server.ts` is now a two-line entry point.
+- `server/src/middleware/error-handler.ts` — a single Express error-handling middleware (`multer.MulterError` → structured 4xx by error code; malformed JSON body → `400 MALFORMED_JSON`; anything else → `500 INTERNAL_SERVER_ERROR`, logged server-side, never leaking internals to the client) plus a structured `404 NOT_FOUND` handler for unmatched routes. Registered once, last, in `app.ts`.
+- `server/src/middleware/rate-limit.ts` rewritten as factories (`createGeneralRateLimiter`, `createUploadRateLimiter`, `createAiRateLimiter`); every route that wants its own request budget now instantiates its own limiter rather than importing a shared singleton. A new `ai` rate-limit bucket (10/min) was added for `/api/analyze/ai`, since it calls a paid external provider.
+- `ai.routes.ts` normalized to the `{error:{code,message,details}}` envelope with meaningful codes (`LANGUAGE_REQUIRED`, `SOURCE_REQUIRED`, `AI_ANALYSIS_FAILED`), rate-limited, and made defensive against a non-object request body.
+- `/api/analyze/compare` given its own rate limiter, and `/api/reports` (PDF generation) given its own as well; `/uploads`'s hand-rolled per-route multer-error handling removed in favor of the shared global handler (same behavior, one source of truth instead of two);
+- An explicit `5mb` limit on the JSON body parser (previously an implicit, undocumented default).
+- `server/src/app.test.ts` — 23 endpoint-level integration tests (via `supertest` against `createApp()`, no real network port) covering the happy path and the documented failure codes for every route, plus: the new 404 handler, the new malformed-JSON handler, an oversized-upload rejection, a rate-limit-exhaustion case (429 on the 11th request against an isolated app instance), and a parser-resilience case (garbage C++ input scores low rather than crashing structural analysis, since tree-sitter is error-tolerant by design).
+
+### Validation
+
+Phase 11 validation recorded:
+
+- TypeScript typecheck: **passed**;
+- production build (`tsc`): **passed**;
+- full test suite: **86/86 passed** (84 pre-existing + 2 new: a rate-limit-exhaustion test and a parser-resilience test), including the 23 new endpoint tests added in this phase;
+- live server verification: malformed JSON body → `400 MALFORMED_JSON`; unknown route → `404 NOT_FOUND`; oversized upload → `413 FILE_TOO_LARGE`; garbage C++ source → `200` with a low (not suspicious) similarity score rather than a crash — all reproduced first by hand, then captured as automated tests;
+- the shared-rate-limiter bug was caught by the endpoint test suite itself (two batch tests failed with unexpected `429`s) before being fixed, then re-verified green.
+
+### Boundary
+
+Phase 11 hardens the backend that Phase 10 connected; it does not add analysis capabilities, and it does not touch frontend work (Phase 12). Two things were identified but deliberately left out of this phase's scope:
+
+- **Execution isolation/timeout/resource-limit testing** for the real Docker worker was not exercised end-to-end, because no Docker daemon was available in the environment this work was done in (same limitation noted in Phase 10). The existing `docker-worker.test.ts` fake-process-runner tests already cover timeout and output-size limits at the unit level; a real container run should still be verified in an environment with Docker before depending on it.
+- **Legacy test-file style.** 23 of the 38 test files (mostly Phase 1–6 analysis modules) are plain assertion scripts (`throw` + `console.log`) rather than `node:test`-style files; `node --test` still runs and correctly fails them (each is reported as one aggregate pass/fail per file rather than per-assertion), so this is a reporting-granularity inconsistency, not a functional gap. All 23 pass. Migrating them to `node:test` was considered out of proportion to this phase's exit condition — it would touch a large amount of already-working legacy code for a cosmetic benefit — and is left as a candidate for a dedicated, low-risk cleanup pass rather than being bundled into this one.
+
+Exit condition:
+
+The backend API is sufficiently stable, validated, and documented for frontend development to depend on it.
+
+**Status: COMPLETE**
 
 ---
 
@@ -762,10 +803,10 @@ Phase 10 — Backend Integration
             COMPLETE
 
 Phase 11 — Backend API Hardening
-            NEXT
+            COMPLETE
 
 Phase 12 — Frontend Foundation
-            NOT STARTED
+            NEXT
 
 Phase 13 — Frontend Results & Analysis UX
             NOT STARTED

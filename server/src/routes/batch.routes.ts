@@ -6,18 +6,20 @@ import { upload } from "../config/upload.js";
 import { UPLOAD_LIMITS } from "../config/limits.js";
 import { validateFileLanguage } from "../validation/file-validation.js";
 import { validateTotalUploadSize } from "../validation/upload-validation.js";
-import { uploadRateLimiter } from "../middleware/rate-limit.js";
+import { createUploadRateLimiter } from "../middleware/rate-limit.js";
 
 import { analyzeBatch } from "../analysis/batch/orchestrator.js";
 import type { BatchSubmission } from "../analysis/batch/submission.js";
 
 const router = Router();
 
+const batchRateLimiter = createUploadRateLimiter();
+
 const DEFAULT_STRUCTURAL_THRESHOLD = 0.75;
 
 router.post(
     "/analyze/batch",
-    uploadRateLimiter,
+    batchRateLimiter,
     upload.fields([
         {
             name: "submissions",

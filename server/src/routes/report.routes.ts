@@ -4,13 +4,15 @@ import { ReportService } from "../reporting/report-service.js";
 import { PdfReportRenderer } from "../reporting/pdf-report-renderer.js";
 import type { ReportInput } from "../reporting/report-input.js";
 import { validateReportInput } from "../validation/report-validation.js";
+import { createUploadRateLimiter } from "../middleware/rate-limit.js";
 
 const router = Router();
 
 const reportService = new ReportService();
 const reportRenderer = new PdfReportRenderer();
+const reportRateLimiter = createUploadRateLimiter();
 
-router.post("/reports", async (req, res) => {
+router.post("/reports", reportRateLimiter, async (req, res) => {
   const validation = validateReportInput(req.body);
 
   if (!validation.valid) {
