@@ -3,7 +3,17 @@ import test from "node:test";
 
 import request from "supertest";
 
-import { createApp } from "./app.js";
+/*
+ * These tests must be hermetic: they must never call the real Gemini API,
+ * regardless of whether the developer's .env contains a working key.
+ * dotenv never overrides a variable that is already set (even to ""), and
+ * the AI provider is constructed when the route modules load, so the
+ * override has to happen BEFORE app.js is imported — hence the dynamic
+ * import rather than a static one.
+ */
+process.env.GEMINI_API_KEY = "";
+
+const { createApp } = await import("./app.js");
 
 const app = createApp();
 
@@ -355,23 +365,34 @@ test("malformed C++ source does not crash structural analysis; it just scores lo
 });
 
 // ---------------------------------------------------------------------
-// Rate limiting (isolated app instance so its counter starts clean
-// regardless of how many requests earlier tests made against the
-// shared `app` instance's own limiters)
+// Rate limiting
+//
+// Per-route limiters are created when each route module loads, so they
+// are shared by every createApp() call in this process and their counters
+// already include requests made by earlier tests. This test therefore
+// doesn't assume a clean counter: it keeps sending requests until the
+// budget must have been exhausted and asserts that the limiter kicked in.
 // ---------------------------------------------------------------------
 
-test("a route's rate limiter returns 429 once its own request budget is exhausted", async () => {
-    const rateLimitedApp = createApp();
+test("a route's rate limiter returns 429 once its request budget is exhausted", async () => {
+    const statuses: number[] = [];
 
-    let lastResponse;
-
-    // config/rate-limit.ts sets the AI route's budget to 10 requests
-    // per window; the 11th request in this window must be rejected.
-    for (let attempt = 0; attempt < 11; attempt += 1) {
-        lastResponse = await request(rateLimitedApp)
+    // config/rate-limit.ts sets the AI route's budget to 10 per window,
+    // so 12 requests are guaranteed to exceed it whatever came before.
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+        const response = await request(app)
             .post("/api/analyze/ai")
             .send({ language: "python", source: "print(1)" });
+
+        statuses.push(response.status);
     }
 
-    assert.equal(lastResponse?.status, 429);
+    assert.ok(
+        statuses.every((status) => status === 200 || status === 429),
+        `unexpected statuses: ${statuses.join(", ")}`,
+    );
+    assert.ok(
+        statuses.includes(429),
+        "expected the rate limiter to reject at least one request",
+    );
 });

@@ -252,3 +252,10 @@ Any material architectural or scope change should:
 **Decision:** 23 of 38 test files (mostly Phase 1–6 analysis modules) remain plain assertion scripts (`throw` + `console.log`) rather than being migrated to `node:test`-style files.
 
 **Reason:** `node --test` already runs and correctly fails these files as part of the unified `npm test` — each is reported as one aggregate pass/fail per file rather than per-assertion, which is a reporting-granularity inconsistency, not a functional gap. Rewriting 23 already-working legacy files for a cosmetic benefit was judged out of proportion to Phase 11's exit condition and carries needless regression risk; it remains a candidate for a dedicated, low-risk cleanup pass rather than being bundled into this phase.
+## Decision 040 — Endpoint Tests Must Be Hermetic With Respect to External Providers
+
+**Decision:** `app.test.ts` sets `GEMINI_API_KEY` to an empty string before dynamically importing the app, so the endpoint suite never reaches the real Gemini API regardless of the developer's `.env`.
+
+**Reason:** `app.ts` loads `.env` via `dotenv/config`, and the AI provider is built when the route modules load. On a developer machine with a working key, the original suite made live API calls (an 11.8 s AI test and a 37 s rate-limit test), spent quota, and would have failed its own `available === false` assertion once a key worked. The override must precede the import because `dotenv` never overrides variables that are already set.
+
+The same rule applies to `gemini-provider.test.ts`: the "no API client configured" test now passes `apiKey: ""` explicitly, because the provider falls back to `process.env.GEMINI_API_KEY` only when `apiKey` is nullish. Previously that test failed for anyone with the key exported in their shell.
