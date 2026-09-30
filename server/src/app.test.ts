@@ -3,14 +3,6 @@ import test from "node:test";
 
 import request from "supertest";
 
-/*
- * These tests must be hermetic: they must never call the real Gemini API,
- * regardless of whether the developer's .env contains a working key.
- * dotenv never overrides a variable that is already set (even to ""), and
- * the AI provider is constructed when the route modules load, so the
- * override has to happen BEFORE app.js is imported — hence the dynamic
- * import rather than a static one.
- */
 process.env.GEMINI_API_KEY = "";
 
 const { createApp } = await import("./app.js");
@@ -54,10 +46,6 @@ test("a malformed JSON body returns a structured 400, not a crash", async () => 
     assert.equal(response.status, 400);
     assert.equal(response.body.error.code, "MALFORMED_JSON");
 });
-
-// ---------------------------------------------------------------------
-// /api/uploads
-// ---------------------------------------------------------------------
 
 test("POST /api/uploads accepts a valid single-file upload", async () => {
     const response = await request(app)
@@ -133,10 +121,6 @@ test("POST /api/uploads rejects an oversized file with a structured 413", async 
     assert.equal(response.body.error.code, "FILE_TOO_LARGE");
 });
 
-// ---------------------------------------------------------------------
-// /api/analyze/compare
-// ---------------------------------------------------------------------
-
 test("POST /api/analyze/compare detects an exact match", async () => {
     const content = Buffer.from(
         "int main() { return 0; }",
@@ -165,10 +149,6 @@ test("POST /api/analyze/compare requires both files", async () => {
     assert.equal(response.body.error.code, "FILES_REQUIRED");
 });
 
-// ---------------------------------------------------------------------
-// /api/analyze/ai
-// ---------------------------------------------------------------------
-
 test("POST /api/analyze/ai requires a language", async () => {
     const response = await request(app)
         .post("/api/analyze/ai")
@@ -195,10 +175,6 @@ test("POST /api/analyze/ai reports unavailable gracefully without credentials", 
     assert.equal(response.status, 200);
     assert.equal(response.body.available, false);
 });
-
-// ---------------------------------------------------------------------
-// /api/reports
-// ---------------------------------------------------------------------
 
 test("POST /api/reports rejects invalid report input", async () => {
     const response = await request(app)
@@ -229,10 +205,6 @@ test("POST /api/reports generates a PDF for valid input", async () => {
         "%PDF-",
     );
 });
-
-// ---------------------------------------------------------------------
-// /api/analyze/workflow
-// ---------------------------------------------------------------------
 
 test("POST /api/analyze/workflow requires a source file", async () => {
     const response = await request(app)
@@ -265,10 +237,6 @@ test("POST /api/analyze/workflow detects an exact match against a reference", as
         ),
     );
 });
-
-// ---------------------------------------------------------------------
-// /api/analyze/batch
-// ---------------------------------------------------------------------
 
 test("POST /api/analyze/batch requires a reference submission", async () => {
     const response = await request(app)
@@ -338,10 +306,6 @@ test("POST /api/analyze/batch returns a pairwise matrix and strips raw source by
     assert.ok(response.body.matrix);
 });
 
-// ---------------------------------------------------------------------
-// Parser resilience
-// ---------------------------------------------------------------------
-
 test("malformed C++ source does not crash structural analysis; it just scores low", async () => {
     const garbage = Buffer.from(
         "{{{ this is not valid c++ at all &&&& )))",
@@ -364,21 +328,9 @@ test("malformed C++ source does not crash structural analysis; it just scores lo
     assert.equal(response.body.similarity.suspicious, false);
 });
 
-// ---------------------------------------------------------------------
-// Rate limiting
-//
-// Per-route limiters are created when each route module loads, so they
-// are shared by every createApp() call in this process and their counters
-// already include requests made by earlier tests. This test therefore
-// doesn't assume a clean counter: it keeps sending requests until the
-// budget must have been exhausted and asserts that the limiter kicked in.
-// ---------------------------------------------------------------------
-
 test("a route's rate limiter returns 429 once its request budget is exhausted", async () => {
     const statuses: number[] = [];
 
-    // config/rate-limit.ts sets the AI route's budget to 10 per window,
-    // so 12 requests are guaranteed to exceed it whatever came before.
     for (let attempt = 0; attempt < 12; attempt += 1) {
         const response = await request(app)
             .post("/api/analyze/ai")

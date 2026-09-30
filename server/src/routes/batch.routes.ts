@@ -74,12 +74,6 @@ router.post(
             });
         }
 
-        /*
-         * analysis/batch/reference.ts hard-requires C++ for both the
-         * reference and every submission. Surfacing that as a clear 400
-         * here (rather than letting it throw into a 500 further down)
-         * documents the same boundary Phase 6 already established.
-         */
         if (language !== "cpp") {
             return res.status(400).json({
                 error: {
@@ -187,11 +181,6 @@ router.post(
                 structuralThreshold,
             );
 
-            /*
-             * BatchAnalysisResult.submissions carries the raw source
-             * Buffer for internal use; it must never be serialized back
-             * to the client as raw bytes.
-             */
             return res.status(200).json({
                 submissions: result.submissions.map(
                     (submission) => ({

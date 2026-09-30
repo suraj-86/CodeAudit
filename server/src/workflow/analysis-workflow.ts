@@ -20,15 +20,10 @@ export interface WorkflowSourceFile {
 
 export interface AnalysisWorkflowRequest {
     projectName?: string | undefined;
-    /** The primary submission being analyzed. */
     source: WorkflowSourceFile;
-    /** Optional reference/expected implementation to compare against. */
     reference?: WorkflowSourceFile | undefined;
-    /** Optional test cases; enables correctness/execution analysis. */
     testCases?: TestCase[] | undefined;
-    /** Defaults to true. Set false to skip the (slower, external) AI call. */
     runAI?: boolean | undefined;
-    /** Structural-similarity suspicion threshold, 0-1. Defaults to 0.75. */
     structuralThreshold?: number | undefined;
 }
 
@@ -36,12 +31,6 @@ export interface AnalysisWorkflowEvidence {
     category: string;
     description: string;
 }
-
-/**
- * Shaped to be usable directly as reporting/report-input.ts's ReportInput
- * (minus `warnings`, which is workflow-only diagnostic information and is
- * intentionally not part of the report contract).
- */
 export interface AnalysisWorkflowResult {
     projectName?: string | undefined;
     sourceFiles: Array<{
@@ -60,11 +49,6 @@ export interface AnalysisWorkflowResult {
     evidence: AnalysisWorkflowEvidence[];
     disclaimer: string;
     generatedAt: string;
-    /**
-     * Capabilities that were requested implicitly (by supplying a
-     * reference and/or test cases) but skipped, and why. Never a silent
-     * failure — every skip is explained.
-     */
     warnings: string[];
 }
 
@@ -333,11 +317,7 @@ export class AnalysisWorkflowOrchestrator {
 
             return result;
         } catch (error) {
-            /*
-             * AI analysis is best-effort and must never fail the overall
-             * workflow. The provider layer already handles most failure
-             * modes internally, but this is a defensive backstop.
-             */
+
             const message =
                 error instanceof Error
                     ? error.message

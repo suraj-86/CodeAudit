@@ -28,11 +28,6 @@ function sendError(
     res.status(status).json(body);
 }
 
-/**
- * Maps a MulterError to the appropriate structured HTTP response.
- * Shared by every upload-accepting route so a malformed or oversized
- * upload never falls through to Express's default (HTML) error page.
- */
 function handleMulterError(
     error: multer.MulterError,
     res: Response,
@@ -76,25 +71,10 @@ function handleMulterError(
     }
 }
 
-/**
- * Express error-handling middleware (four-argument signature is required
- * for Express to recognize it as such). Registered last, after every
- * route. In Express 5, thrown/rejected errors from async handlers are
- * forwarded here automatically, so this is the single backstop for:
- *
- *  - malformed uploads (MulterError) on any route that accepts files,
- *    even ones that don't handle it individually;
- *  - malformed JSON request bodies (a body-parser SyntaxError);
- *  - any other unexpected/unhandled error.
- *
- * It never leaks stack traces or internal error messages to the client;
- * unexpected errors are logged server-side and reported generically.
- */
 export const errorHandler: ErrorRequestHandler = (
     error,
     _req: Request,
     res: Response,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _next: NextFunction,
 ) => {
     if (res.headersSent) {
@@ -132,11 +112,6 @@ export const errorHandler: ErrorRequestHandler = (
     );
 };
 
-/**
- * Registered after every route. Any request that reaches here matched
- * no route, so it's reported as a structured 404 instead of Express's
- * default HTML page.
- */
 export function notFoundHandler(
     req: Request,
     res: Response,
