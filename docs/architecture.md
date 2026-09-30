@@ -58,6 +58,8 @@ Responsibilities:
 
 The frontend should not contain security-sensitive analysis logic.
 
+> **Implementation note (Phase 12):** built as `client/` — Vite + React 19 + TypeScript, Tailwind v4, `react-router`. `src/api/` is the service layer (typed contracts, one `ApiError`/`NetworkError` model, no analysis logic — every score, similarity value and evidence entry is only ever displayed, never computed, matching the principle above). `src/lib/capabilities.ts` reads `GET /api/languages`' `capabilities` field (see Phase 10 `config/capabilities.ts` and Decision 041) rather than re-deciding which language supports which check. The one piece of "frontend logic" that looks like analysis — the SHA-256 "print" in `FilePrint` (Decision 042) — is not: it visualises the same digest the backend already computes and returns, rather than deciding anything about the file itself.
+
 ## 4. Backend API
 
 Responsibilities:

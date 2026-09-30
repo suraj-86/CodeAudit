@@ -587,7 +587,40 @@ The frontend should consume the documented backend APIs rather than reproduce ba
 
 A user can enter the CodeAudit workflow through the frontend, provide valid input, communicate with the backend, and receive correctly handled success, loading, and error states.
 
-**Status: NOT STARTED**
+### Implemented V1 Scope
+
+Two small backend additions were made in this phase, both because the frontend genuinely needed them to avoid duplicating backend logic (per the phase's own principle above), not as new analysis capabilities:
+
+- `server/src/config/capabilities.ts` — the single source of truth for which analysis engine supports which language (previously this was implicit and duplicated as ad-hoc checks across `analysis-workflow.ts` and `batch.routes.ts`; both now read from here). `GET /api/languages` now returns each language's `capabilities` object and the server's upload `limits`, so the frontend never hard-codes either — see the Phase 12 note on §4 and §14 of `docs/api-specification.md`.
+- `middleware/rate-limit.ts`'s `429` responses now use the standard error envelope with `code: "RATE_LIMITED"` and `details.retryAfterSeconds`, instead of express-rate-limit's default plain-text body — see the Phase 12 note on §12.
+
+Frontend delivered, under `client/`:
+
+- **Foundation:** Vite + React 19 + TypeScript, Tailwind v4 (via `@tailwindcss/vite`), `react-router` v8. A dev-only Vite proxy (`server.proxy` and `preview.proxy`) forwards `/api` to the backend so the browser never needs CORS; `VITE_API_BASE_URL` overrides this for a split-origin deployment. Design tokens (colour, type, the "printed proof" motif) live in `src/index.css` as a Tailwind v4 `@theme` block.
+- **API service layer** (`src/api/`): typed request/response contracts mirroring the backend exactly, a `fetch` wrapper that turns every non-2xx response into one `ApiError` (parsed from the `{error:{code,message,details}}` envelope, with a `RATE_LIMITED`-aware `retryAfterSeconds`) or `NetworkError` (the request never reached a server at all), and typed functions for every endpoint including multipart building for `/analyze/workflow` and `/analyze/batch` and blob handling for `/reports`.
+- **Reusable components** (`src/components/`): a design system distinct from generic AI-generated UI — a light "tracing paper over a grid" background, hard-offset-shadow buttons, a `DropZone` with registration marks that snap inward on drag, an evidence-log/warnings list, an execution/AI result view, a similarity dial, and a `FilePrint` — a 4×4 Bauhaus-tile pattern derived deterministically from a file's SHA-256 (computed client-side via Web Crypto, with a pure-JS fallback for non-secure origins), so identical files visibly share a "print" before any request is made.
+- **The interactive centrepiece** (`RenameTestDemo`, on the home page): lets a person toggle cosmetic changes (rename identifiers, add comments, change a literal) and a genuine one (change an operator) against a real code snippet, and watch a live `StructureStrip` rendering of `BASE_STRUCTURE` — which is the *actual, recorded output* of the backend's own `structural/traversal.ts` for that exact snippet, not a simulated approximation — hold still for the cosmetic changes and shift by exactly one tile for the structural one.
+- **Two workflow pages:** `/check` (single submission plus optional reference, via `POST /api/analyze/workflow`) and `/batch` (a class set plus a required reference, via `POST /api/analyze/batch`, restricted to languages whose `capabilities.batch` is true). Both read language and capability information entirely from `GET /api/languages` rather than hard-coding rules, show upload/paste input, gate the submit button on real file validation (not just presence — a file with a wrong extension or over the size limit disables submission, not just shows a warning), and render every result field: exact-match, structural similarity, correctness per test case, AI analysis (including the disabled/unavailable state), the evidence log, and a PDF-report download that round-trips through `POST /api/reports`.
+- **States:** loading (`ScanningLoader`), the four error shapes (`ApiError`, a `RATE_LIMITED` countdown, `NetworkError`, and an unknown-error fallback), and unavailable-capability states (the workflow's own `warnings[]`, and capability chips that grey out what a language doesn't support before a request is even made).
+
+### Validation
+
+Phase 12 validation recorded:
+
+- TypeScript typecheck (`tsc -b --noEmit`), ESLint, and `vite build`: all **passed**, zero warnings;
+- Vitest: **40/40 passed** — unit tests for the SHA-256 implementation (checked against Node's `crypto` module directly, including the pure-JS fallback path), the file-print generator, capability-sentence copy, file/draft validation, and the API client's error-envelope parsing (including the `RATE_LIMITED`/`NetworkError`/malformed-body/abort-signal branches); component tests for the interactive demo and every `ErrorNotice` branch (including a fake-timer countdown-to-retry test); an App-level smoke test (mocked backend) covering the happy path, the disabled-until-valid form state, a `/api/languages` failure, and the 404 route;
+- backend regression: **92/92 passed** (the Phase 11 suite plus the new capability/rate-limit-envelope tests);
+- a real, unmocked end-to-end pass, run against the actual backend (Docker not required for this — C++/structural and the report pipeline don't need it) via Playwright screenshots and interactions: uploaded two real C++ files (a renamed-identifier clone) through `/check` and confirmed the real result (`exactMatch: false`, `similarity: 1.0`, correctly flagged suspicious); downloaded and verified a real PDF via the report button; ran a 3-submission-plus-reference batch through `/batch` and confirmed the matrix, flagged-pairs list, and reference comparisons matched the backend's actual computed values (including a non-trivial case: an operator change producing 87% similarity, not 100% or 0%); confirmed responsive layout at a 390px mobile width;
+- this pass itself caught and fixed two real bugs before they shipped: `vite preview` needed its own `preview.proxy` (separate from dev's `server.proxy`) to be tested accurately at all, and — more importantly — **both workflow forms let a person submit a file that had already been flagged as invalid** (wrong extension, empty, or oversized); the submit button now checks the same validation the inline warning shows, not just "a file is present."
+
+### Boundary
+
+Phase 12 is the input/submission half of the frontend; Phase 13 (Frontend Results & Analysis UX) owns deeper results presentation, and Phase 5 (a dedicated comparison UI) remains deferred from the original phase list. Two things noted but left out of scope here:
+
+- **The Docker execution path** (Python correctness testing) still has no automated frontend-side end-to-end check against a live container, for the same reason as Phases 10–11: no Docker daemon in the environment this work was done in. The UI code for it (`TestCaseEditor`, `ExecutionResultView`) was exercised via the mocked App-level test and via manual reasoning about the API contract, not a live run.
+- **The legacy plain-script backend tests** (Decision 039) remain untouched; this phase didn't add to that inconsistency, and didn't attempt to resolve it either.
+
+**Status: COMPLETE**
 
 ---
 
@@ -806,10 +839,10 @@ Phase 11 — Backend API Hardening
             COMPLETE
 
 Phase 12 — Frontend Foundation
-            NEXT
+            COMPLETE
 
 Phase 13 — Frontend Results & Analysis UX
-            NOT STARTED
+            NEXT
 
 Phase 14 — End-to-End Evaluation & Release
             NOT STARTED

@@ -259,3 +259,27 @@ Any material architectural or scope change should:
 **Reason:** `app.ts` loads `.env` via `dotenv/config`, and the AI provider is built when the route modules load. On a developer machine with a working key, the original suite made live API calls (an 11.8 s AI test and a 37 s rate-limit test), spent quota, and would have failed its own `available === false` assertion once a key worked. The override must precede the import because `dotenv` never overrides variables that are already set.
 
 The same rule applies to `gemini-provider.test.ts`: the "no API client configured" test now passes `apiKey: ""` explicitly, because the provider falls back to `process.env.GEMINI_API_KEY` only when `apiKey` is nullish. Previously that test failed for anyone with the key exported in their shell.
+
+## Decision 041 — Language Capabilities Live in the Backend, Not the Frontend
+
+**Decision:** `server/src/config/capabilities.ts` is the single source of truth for which analysis engine (exact-match, structural, batch, execution, AI) supports which language. `GET /api/languages` exposes it; the frontend reads it rather than hard-coding its own copy of the same rules.
+
+**Reason:** The alternative (a frontend constants file duplicating the backend's language rules) would drift the first time a capability changes — e.g. when structural analysis gains a second language, the frontend would keep offering the old, narrower set until someone remembered to update it by hand in two places. A single source of truth, even at the cost of a small backend change during a frontend phase, was chosen deliberately over that risk (this was an explicit choice offered to and confirmed by the project owner).
+
+## Decision 042 — The File "Print" Is Deterministic and Computed Client-Side
+
+**Decision:** `FilePrint` renders a 4×4 Bauhaus-tile pattern derived deterministically from a file's SHA-256 digest, computed in the browser (Web Crypto, with a pure-JS fallback for non-secure origins) as soon as a file is added — before any request is sent to the backend.
+
+**Reason:** It gives an immediate, correct visual signal ("these two files look identical" / "these clearly differ") that doesn't wait on a network round-trip, and it reuses the same SHA-256 the backend already computes and returns, so the client-side print and the eventual server-side hash are never two different notions of "the same file" — they're the same digest, just visualised.
+
+## Decision 043 — The Landing-Page Demo Uses Real Backend Output, Not a Simulation
+
+**Decision:** `RenameTestDemo`'s "original structure" sequence (`BASE_STRUCTURE` in `client/src/lib/specimen.ts`) is the literal, recorded output of the backend's own `analysis/structural/traversal.ts` for one fixed snippet — captured once by running the real engine — not a hand-written approximation of what the engine "probably" does.
+
+**Reason:** The demo's entire claim is "renaming/comments/literals don't change the structure; an operator does." That claim is falsifiable, and a hand-simulated version could silently drift from what the engine actually does as the engine changes, making the demo quietly dishonest. Using the engine's real output means the demo either stays true or visibly breaks (a future engine change that reorders nodes would need `BASE_STRUCTURE` regenerated), rather than silently becoming a plausible-looking fiction.
+
+## Decision 044 — Submit Buttons Gate on Validity, Not Just Presence
+
+**Decision:** Both workflow forms (`/check`, `/batch`) disable their submit button when any provided file fails validation (wrong extension, empty, over the size limit) — not only when a file is entirely missing.
+
+**Reason:** Found during Phase 12's own Playwright verification pass: the initial implementation showed an inline "Python files end in .py, this one is .cpp" warning next to the file, but the button stayed enabled anyway, so a person could ignore the warning and send a request the backend would just reject. The fix reuses the exact same `fileProblem`/`draftProblem` check the inline warning already uses, so the two can't disagree with each other.

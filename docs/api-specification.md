@@ -53,6 +53,33 @@ Example:
 
 Execution support may differ from parsing support.
 
+> **Implementation note (Phase 12):** the shipped response uses `label` instead of `name`, and replaces the two-flag `parse`/`execute` sketch above with the full per-language capability set the frontend actually needs to decide what to show — one boolean per analysis engine, sourced from `server/src/config/capabilities.ts` (the single place that decides which language supports which engine; see Phase 10 Decision 036). The response also includes `limits`, so the frontend never hard-codes upload constraints. Actual shape:
+>
+> ```json
+> {
+>   "languages": [
+>     {
+>       "id": "cpp",
+>       "label": "C++",
+>       "extensions": [".cpp", ".cc", ".cxx", ".hpp"],
+>       "capabilities": {
+>         "exactMatch": true,
+>         "structural": true,
+>         "batch": true,
+>         "execution": false,
+>         "ai": true
+>       }
+>     }
+>   ],
+>   "limits": {
+>     "maxFileSizeBytes": 1048576,
+>     "maxFiles": 100,
+>     "maxTotalSourceBytes": 104857600,
+>     "maxBatchSubmissions": 100
+>   }
+> }
+> ```
+
 ## 5. Source-Code Upload
 
 ### POST /api/uploads
@@ -392,6 +419,18 @@ Errors should follow a consistent structure:
 > - any other unhandled error — `500 INTERNAL_SERVER_ERROR` (the underlying error is logged server-side and never included in the response).
 >
 > Before Phase 11, three of five upload-accepting routes had no multer-error handling at all and would fall through to Express's default HTML error page; `ai.routes.ts` used a bare `{error: "string"}` shape instead of this envelope. Both are fixed.
+
+> **Implementation note (Phase 12):** a `429` response (rate limit exceeded) also uses this envelope, with `code: "RATE_LIMITED"` and `details: { retryAfterSeconds: <number> }` — a `Retry-After`-style hint the frontend uses to show a live countdown rather than a static "try again later" message. Example:
+>
+> ```json
+> {
+>   "error": {
+>     "code": "RATE_LIMITED",
+>     "message": "Too many requests. Wait a moment and try again.",
+>     "details": { "retryAfterSeconds": 42 }
+>   }
+> }
+> ```
 
 ## 13. Important Error Cases
 
