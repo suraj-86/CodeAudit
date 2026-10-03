@@ -61,9 +61,6 @@ def add(a, b):
 });
 
 test("GeminiAnalysisProvider returns unavailable when no API client is configured", async () => {
-    // An explicit empty key (not undefined) is required: the provider only
-    // falls back to process.env.GEMINI_API_KEY when apiKey is nullish, so
-    // this keeps the test independent of the developer's environment.
     const provider =
         new GeminiAnalysisProvider({ apiKey: "" });
 
