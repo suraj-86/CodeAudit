@@ -5,6 +5,7 @@ import express from "express";
 
 import uploadRouter from "./routes/upload.routes.js";
 import { createGeneralRateLimiter } from "./middleware/rate-limit.js";
+import { buildCorsOptions } from "./config/cors.js";
 import {
     errorHandler,
     notFoundHandler,
@@ -18,7 +19,7 @@ import batchRouter from "./routes/batch.routes.js";
 export function createApp(): express.Express {
     const app = express();
 
-    app.use(cors());
+    app.use(cors(buildCorsOptions()));
     app.use(express.json({ limit: "5mb" }));
     app.use("/api", createGeneralRateLimiter());
 

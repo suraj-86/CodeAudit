@@ -813,7 +813,35 @@ Test applicable workflows including:
 
 The complete CodeAudit V1 workflow is stable, demonstrable, documented, and deployable.
 
-**Status: NOT STARTED**
+### Progress So Far
+
+Everything below was verified directly — not assumed — in the environment this work was done in, which has no Docker daemon and no deployment credentials. Two items are explicitly left for the project owner to confirm themselves; see "What's left" below.
+
+**End-to-end workflow testing**, via Playwright against the real running backend (not mocks): source upload, exact-match, structural analysis (a real renamed-variable C++ pair, correctly flagged), batch analysis (3 submissions, a correctly-computed 100%/100%/47% similarity split), reference analysis, PDF report generation and download (a real, valid PDF), AI-assisted analysis in its unavailable state (no key configured here), and failure/recovery paths: malformed C++ source (doesn't crash — low similarity score, matching tree-sitter's error tolerance), an oversized file upload (clean `413`, not a crash), a missing/invalid file (submit button correctly stays disabled). Correctness/execution was verified for the *graceful-without-Docker* path (reports `Execution Unavailable` with the real underlying reason, `spawn docker ENOENT`, rather than crashing) — a real successful Python execution could not be verified here; see "What's left."
+
+**Security and robustness:** rate limiting re-confirmed against the real server (exactly 10 requests succeed, the 11th gets a clean `429` with the `RATE_LIMITED` envelope and a working `retryAfterSeconds`); a 20-request concurrent burst against `/api/languages` all returned `200` with the server remaining responsive immediately after. Malformed requests, oversized inputs, unsupported files, parser failures, and AI-provider failures were all re-confirmed as part of the end-to-end pass above rather than only at the unit/endpoint level (Phases 10–11 already covered those). Execution timeouts/isolation and report-generation failures remain covered at the unit level only (`docker-worker.test.ts`'s fake process runner; `report-service.test.ts`), unchanged from earlier phases.
+
+**Frontend verification:** the production build (`vite build`) was re-confirmed clean, with Monaco correctly isolated into its own lazy chunk (284 KB main bundle, unchanged from Phase 13). Loading states, API error handling, retry behavior, and unavailable-capability states were all exercised live as part of the end-to-end pass above, not just the existing Vitest suite.
+
+**Deployment prep:**
+- `server/src/config/cors.ts` (Decision 049): CORS is now configurable via `CORS_ALLOWED_ORIGINS` (comma-separated origins), defaulting to wide-open when unset so local development is unaffected. Verified directly against the real server in both modes: unset → `Access-Control-Allow-Origin: *`; set to a specific origin → that origin is reflected back and a non-matching origin gets no CORS header at all.
+- `server/.env.example` added (didn't exist before) — documents every environment variable the server actually reads (cross-checked against the source, not just copied from memory): `PORT`, `CORS_ALLOWED_ORIGINS`, `GEMINI_API_KEY`/`GEMINI_MODEL`/`GEMINI_TIMEOUT_MS`, `EXECUTION_TIMEOUT_MS`/`EXECUTION_MAX_OUTPUT_BYTES`.
+- `README.md` gained a `Getting Started` section (previously the README had no setup/run instructions at all — just conceptual description) and a `Deployment` section with concrete, platform-specific steps for Render (backend) + Vercel (frontend) — the project owner's actual hosting choice — including the CORS-closing step after both are live, and why Python execution specifically needs extra host support beyond a standard web service.
+
+**Documentation:** a sweep of `requirements.md`, `scope.md`, `vision.md`, `analysis-engine.md`, `architecture.md`, and `api-specification.md` for stale status language found and fixed one real instance (`requirements.md`'s execution section still said comparison UI, reporting, and "multi-language execution workers" were future work, and referenced Phase 10 Docker hardening that has since completed); the rest of the "future work" language found was legitimate (GitHub/GitLab import, persistent accounts — genuinely out of V1 scope, not completed-but-undocumented). A `Known Limitations` section and a `Demonstration checklist` were added to `README.md`.
+
+### What's left
+
+Two things only the project owner can verify, since they require either a Docker daemon or real hosting credentials that aren't available in the environment this work was done in:
+
+1. **A real Python execution run against Docker.** Build the image (`docker build -t codeaudit/python server/runtime/python`), run the server locally with Docker available, and submit a Python file with a test case through `/check`. The *graceful-failure* path (no Docker) is already confirmed; what's unconfirmed is the actual happy path.
+2. **An actual deployment**, per the README's new Deployment section (Render for the backend, Vercel for the frontend), followed by the demonstration checklist run against the live URLs rather than `localhost`.
+
+Exit condition:
+
+The complete CodeAudit V1 workflow is stable, demonstrable, documented, and deployable.
+
+**Status: IN PROGRESS** — everything verifiable without Docker or hosting credentials is done; closing this phase out depends on the project owner's results from "What's left" above.
 
 ---
 
@@ -884,5 +912,5 @@ Phase 13 — Frontend Results & Analysis UX
             COMPLETE (with Phase 5)
 
 Phase 14 — End-to-End Evaluation & Release
-            NEXT
+            IN PROGRESS — awaiting Docker execution check and deployment
 ```

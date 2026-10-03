@@ -213,6 +213,6 @@ The current focused validation recorded:
 - TypeScript typecheck: passed;
 - backend build: passed.
 
-The current Docker isolation implementation is a V1 baseline. Stronger production hardening remains part of Phase 10.
+The current Docker isolation implementation is a V1 baseline; the request-level timeout, output-size limit, and network-disabled controls above were hardened as part of Phase 11, and are unit-tested against a fake process runner. They have not been re-verified against a real Docker daemon in every phase since — see the "Known Limitations" section of the top-level README.
 
-The final comparison UI, report generation, and multi-language execution workers remain later implementation work. Phase 8 AI-provider integration is now implemented and separately validated.
+The comparison UI (Phase 5) and report generation (Phase 9) are implemented, including a Monaco-based side-by-side code diff (Phase 13). Execution remains Python-only by design, not as unfinished work — see `server/src/config/capabilities.ts` and Decision 036 in `docs/decisions.md` for the documented per-language capability boundary; adding further execution languages would be new scope, not a gap in V1.

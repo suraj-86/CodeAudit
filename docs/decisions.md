@@ -307,3 +307,9 @@ The same rule applies to `gemini-provider.test.ts`: the "no API client configure
 **Decision:** `SignalsBanner` states the roadmap's four prohibited implications directly and negatively (e.g. "Structural similarity does not prove who wrote the code... there is no combined score") at the top of every results view, rather than relying only on each individual section's own disclaimer text to avoid implying them.
 
 **Reason:** Phase 13's constraint is a list of things the interface must not imply — a negative requirement that's easy to satisfy by accident in any one section's copy while still leaving the overall page's *impression* ambiguous (several strong-looking percentages sitting next to each other can imply a combined verdict even when no single sentence claims one). A standing, structurally unavoidable banner is a stronger guarantee than auditing each section's wording in isolation.
+
+## Decision 049 — CORS Defaults Open, Is Configurable, Never Required
+
+**Decision:** `CORS_ALLOWED_ORIGINS` (comma-separated) restricts CORS to specific origins when set; when unset, CORS stays wide open rather than defaulting to some arbitrary restrictive default.
+
+**Reason:** A hard-coded restrictive default would break local development the moment the frontend's dev port changed, or if it were accessed from a LAN address during testing — there's no single "right" origin to hard-code for a tool meant to run both as `localhost:5173` during development and as a real deployed frontend origin in production. Making it opt-in via an environment variable means development is unaffected by default, and a production deployment (Render, in this project's case) gains a one-line way to close the open-CORS exposure once the real frontend origin is known.

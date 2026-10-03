@@ -480,3 +480,5 @@ The API should be structured so that a future `/api/v2` can be introduced withou
 No endpoint should assume that uploaded source code is trustworthy.
 
 All endpoints must validate input and apply appropriate resource controls.
+
+> **Implementation note (Phase 14):** CORS is configurable via `CORS_ALLOWED_ORIGINS` (`server/src/config/cors.ts`), a comma-separated origin list. It defaults to wide-open (reflects any origin) when unset — the right default for local development, where a dev frontend's origin is unpredictable — and should be set explicitly to the deployed frontend's real origin(s) in production. See the top-level `README.md`'s Deployment section and `server/.env.example`.
