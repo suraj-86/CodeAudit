@@ -124,9 +124,7 @@ Exit condition:
 
 A user can upload two files and understand the comparison result.
 
-**Status: NOT STARTED**
-
-Phase 5 remains deferred under the backend-first implementation sequence.
+**Status: COMPLETE** — fulfilled together with Phase 13 (see that section for what was built and validated). The project owner explicitly chose to do both phases in one pass rather than sequentially, once it was clear most of Phase 5's scope (comparison page, similarity summary, structural evidence, loading/error states) had already been built as part of Phase 12's foundation work, leaving Monaco/side-by-side as the one genuinely new piece — building that alongside Phase 13's results polish avoided redesigning the same results page twice.
 
 ---
 
@@ -615,7 +613,7 @@ Phase 12 validation recorded:
 
 ### Boundary
 
-Phase 12 is the input/submission half of the frontend; Phase 13 (Frontend Results & Analysis UX) owns deeper results presentation, and Phase 5 (a dedicated comparison UI) remains deferred from the original phase list. Two things noted but left out of scope here:
+Phase 12 is the input/submission half of the frontend; Phase 13 (Frontend Results & Analysis UX) owns deeper results presentation, and Phase 5 (a dedicated comparison UI) was done together with it (see Phase 13). Two things noted but left out of scope here:
 
 - **The Docker execution path** (Python correctness testing) still has no automated frontend-side end-to-end check against a live container, for the same reason as Phases 10–11: no Docker daemon in the environment this work was done in. The UI code for it (`TestCaseEditor`, `ExecutionResultView`) was exercised via the mocked App-level test and via manual reasoning about the API contract, not a live run.
 - **The legacy plain-script backend tests** (Decision 039) remain untouched; this phase didn't add to that inconsistency, and didn't attempt to resolve it either.
@@ -680,7 +678,48 @@ The interface must not imply that:
 
 A user can complete a meaningful CodeAudit analysis through the frontend and understand the results, evidence, limitations, and generated report.
 
-**Status: NOT STARTED**
+### Implemented V1 Scope
+
+Done together with Phase 5 (Comparison UI), by explicit choice — see that section. This phase is purely frontend; no backend code changed.
+
+**Monaco / side-by-side (Phase 5's one genuinely new piece):** `client/src/lib/monaco-setup.ts` self-hosts Monaco (no CDN) with only the editor core and the five supported languages' grammars — not the full `monaco-editor` barrel, which would pull in dozens of unused ones. `CodeDiffView` wraps `monaco.editor.createDiffEditor` as a read-only, lazy-loaded (`React.lazy`) component: the entire ~2.7 MB Monaco chunk loads only once a diff is actually about to render, not on first page load. It renders the *actual* two files that were submitted — read client-side from the `File` objects already in memory via `useFileText`, with no new backend endpoint needed — and switches between side-by-side and inline rendering based on its own container width (via `ResizeObserver`), not the viewport's, since it can sit in a narrower column even on a wide screen. Wired into both `/check` (source vs. reference) and `/batch` (matrix pair selection, or a reference-comparison row — `lib/batch-selection.ts`'s `resolveSelection` resolves either into the same two-files-and-labels shape).
+
+**Result summary:** `ResultSummary` — a compact, facts-only strip ("2 of 4 checks completed", "Exact match: No", similarity, skip count) at the top of both the workflow and batch results views. It states counts only, never a combined judgement, so it can't be mistaken for a verdict.
+
+**The "must not imply" list, made structural rather than just careful wording:** `SignalsBanner` states the four prohibited implications directly and negatively ("Structural similarity does not prove who wrote the code," "...there is no combined score") at the top of every results view, rather than relying solely on scattered disclaimers in individual sections to avoid them.
+
+**UX quality:**
+- empty states: batch's "Flagged pairs" / "Against the reference" sections now always render, with explicit copy when there's nothing to show ("No pair crossed the similarity threshold... this is a clean result, not a skipped one") instead of silently disappearing, which previously could look like something had failed to run;
+- partial-result, failure, and retry states were already built in Phase 12 (`WarningsList`, `ErrorNotice`, the rate-limit countdown) and are unchanged here;
+- responsive layout: verified at 390px width, including `CodeDiffView`'s side-by-side → inline switch;
+- accessible presentation: unchanged from Phase 12's existing `aria-label`/`role` usage; Monaco's own diff editor has its own (partial) built-in accessibility support, which this integration doesn't attempt to extend.
+
+**Report experience:** unchanged from Phase 12 (already covered its full scope: generation action, loading status, PDF download, error handling with retry).
+
+### Validation
+
+Phase 13/5 validation recorded:
+
+- TypeScript typecheck, ESLint, and `vite build`: all **passed**, zero warnings;
+- Vitest: **52/52 passed** (40 from Phase 12 plus 12 new: `CodeDiffViewImpl`'s Monaco wiring and `CodeDiffView`'s lazy-load fallback, both via a mocked `monaco-setup` module since real Monaco cannot run in jsdom; `resolveSelection`'s pair/reference/unsupported-language/missing-file branches; `useFileText`'s initial/resolved/file-changed states);
+- backend regression: **92/92 passed**, unaffected (no backend code touched this phase);
+- a real, unmocked end-to-end pass via Playwright against the actual backend: a renamed-variable C++ pair through `/check` showing the real diff (`average`/`a`/`b` vs `mean`/`x`/`y`, 100% structural similarity, correctly flagged); a 2-submission batch with a deliberately dissimilar pair through `/batch`, exercising both the "no flagged pairs" empty state and a reference-row diff selection; a PDF download verified as a real, valid PDF; the same `/check` flow re-verified at 390px mobile width.
+- this pass caught and fixed three real bugs before they shipped, none of which the type system or linter could have caught:
+  1. **A ~2.99 MB main bundle.** Monaco was being pulled into the app's initial chunk (loaded on every page visit, even the home page) because `CodeDiffView` was imported eagerly. Fixed by splitting it into a `React.lazy`-loaded wrapper (`CodeDiffView.tsx`) around the real implementation (`CodeDiffViewImpl.tsx`); the main chunk dropped to 284 KB, with Monaco now fetched only when a diff is actually rendered.
+  2. **A double-invocation bug in `CodeDiffViewImpl`.** An unnecessary `ready` state caused the model-setting effect to run twice on mount (disposing and recreating the diff models immediately after creating them) — harmless to the user but wasteful. Found by a test asserting `setModel` was called exactly once; fixed by removing the redundant state, since the editor ref is already populated synchronously before the dependent effect runs in the same commit.
+  3. **Invisible gutter icons.** The diff view's insert/remove margin icons rendered as empty "tofu" boxes. `monaco-editor`'s package `exports` field only exposes `.js` subpaths, not its CSS, so the icon font (`codicon.ttf`) is registered directly via a hand-written `@font-face` in `index.css`; a second, non-obvious fix was then needed because `CodeDiffViewImpl`'s own custom `fontFamily` editor option was cascading onto the icon elements and overriding Monaco's internal `.codicon` font-family rule (itself injected at runtime via JS, which is why the rest of the editor's appearance needed no CSS import at all) — resolved with a targeted `.codicon { font-family: 'codicon' !important; }` override.
+
+### Boundary
+
+This phase is the last planned frontend work before Phase 14. Two things noted but left as-is:
+- the pre-existing `BatchMatrix` column-header truncation (two files with long, similar-prefixed names can show indistinguishable truncated headers, though the row labels and hover titles remain correct) predates this phase and wasn't touched;
+- Monaco's own diff-editor accessibility is whatever Monaco itself provides; this integration didn't attempt to extend or audit it further.
+
+Exit condition:
+
+A user can complete a meaningful CodeAudit analysis through the frontend and understand the results, evidence, limitations, and generated report.
+
+**Status: COMPLETE**
 
 ---
 
@@ -842,8 +881,8 @@ Phase 12 — Frontend Foundation
             COMPLETE
 
 Phase 13 — Frontend Results & Analysis UX
-            NEXT
+            COMPLETE (with Phase 5)
 
 Phase 14 — End-to-End Evaluation & Release
-            NOT STARTED
+            NEXT
 ```

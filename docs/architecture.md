@@ -59,6 +59,8 @@ Responsibilities:
 The frontend should not contain security-sensitive analysis logic.
 
 > **Implementation note (Phase 12):** built as `client/` — Vite + React 19 + TypeScript, Tailwind v4, `react-router`. `src/api/` is the service layer (typed contracts, one `ApiError`/`NetworkError` model, no analysis logic — every score, similarity value and evidence entry is only ever displayed, never computed, matching the principle above). `src/lib/capabilities.ts` reads `GET /api/languages`' `capabilities` field (see Phase 10 `config/capabilities.ts` and Decision 041) rather than re-deciding which language supports which check. The one piece of "frontend logic" that looks like analysis — the SHA-256 "print" in `FilePrint` (Decision 042) — is not: it visualises the same digest the backend already computes and returns, rather than deciding anything about the file itself.
+>
+> **Implementation note (Phase 13, combined with Phase 5):** `CodeDiffView` (self-hosted, lazy-loaded Monaco — Decision 047) is the same kind of display-only component: it renders exactly the two `File` texts it's given, already held client-side from the original upload (Decision 046), and the similarity verdict shown alongside it always comes from the backend. `SignalsBanner` and `ResultSummary` are presentation-layer-only too — the former a fixed, non-computed statement of the roadmap's "must not imply" constraints (Decision 048), the latter a count of facts already present in the result object, never a new computed score.
 
 ## 4. Backend API
 

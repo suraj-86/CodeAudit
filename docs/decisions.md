@@ -283,3 +283,27 @@ The same rule applies to `gemini-provider.test.ts`: the "no API client configure
 **Decision:** Both workflow forms (`/check`, `/batch`) disable their submit button when any provided file fails validation (wrong extension, empty, over the size limit) — not only when a file is entirely missing.
 
 **Reason:** Found during Phase 12's own Playwright verification pass: the initial implementation showed an inline "Python files end in .py, this one is .cpp" warning next to the file, but the button stayed enabled anyway, so a person could ignore the warning and send a request the backend would just reject. The fix reuses the exact same `fileProblem`/`draftProblem` check the inline warning already uses, so the two can't disagree with each other.
+
+## Decision 045 — Phase 13 and Phase 5 Were Done as One Combined Pass
+
+**Decision:** Phase 13 (Frontend Results & Analysis UX) and the previously-deferred Phase 5 (Comparison UI) were implemented together in one phase, rather than Phase 13 first and Phase 5 second (or vice versa).
+
+**Reason:** By the time Phase 13 began, Phase 12 had already substantially built most of Phase 5's listed scope (comparison page, similarity summary, structural evidence, loading/error states) as part of its own results rendering — leaving Monaco/side-by-side as Phase 5's one genuinely unbuilt piece. Doing Phase 13 first and Phase 5 second would have meant designing the results page once, then revisiting the same components a second time to retrofit a Monaco panel neither the layout nor the data flow had been built to expect. This was an explicit choice offered to and confirmed by the project owner, not a default.
+
+## Decision 046 — The Diff View Reads Files the Browser Already Has, Not a New Endpoint
+
+**Decision:** `CodeDiffView` is given the actual submitted `File` objects (still held in the submitting page's component state) and reads their text client-side via `file.text()`, rather than the backend gaining an endpoint that returns source code alongside analysis results.
+
+**Reason:** The browser already has the exact bytes the user uploaded, sitting in memory for the lifetime of the results view; fetching them from the server a second time would be redundant round-tripping of data the client already holds, and would require the backend to retain or resend source code it currently treats as transient per-request input (see the Temporary Data Lifecycle section of `docs/architecture.md`). This keeps Phase 13/5 entirely frontend-only.
+
+## Decision 047 — Monaco Is Self-Hosted and Lazy-Loaded, Never From a CDN
+
+**Decision:** `monaco-editor` is a direct dependency, imported only via `React.lazy()` (so its ~2.7 MB chunk loads solely when a diff view is about to render, never on first page load), with only the editor core and the five supported languages' grammars pulled in — not Monaco's full "every language" bundle, and not a CDN-hosted copy.
+
+**Reason:** A CDN load would mean the page depends on a third-party host being reachable, and would be an odd inconsistency for a tool whose whole purpose is handling people's submitted source code locally. Lazy-loading keeps the cost of including a full code-diff engine from being paid by every visitor, including ones who never view a diff; importing only the needed language grammars (rather than monaco-editor's full barrel) keeps that lazy chunk itself from being larger than it needs to be.
+
+## Decision 048 — The "Must Not Imply" List Gets Its Own Structural Banner, Not Just Careful Wording
+
+**Decision:** `SignalsBanner` states the roadmap's four prohibited implications directly and negatively (e.g. "Structural similarity does not prove who wrote the code... there is no combined score") at the top of every results view, rather than relying only on each individual section's own disclaimer text to avoid implying them.
+
+**Reason:** Phase 13's constraint is a list of things the interface must not imply — a negative requirement that's easy to satisfy by accident in any one section's copy while still leaving the overall page's *impression* ambiguous (several strong-looking percentages sitting next to each other can imply a combined verdict even when no single sentence claims one). A standing, structurally unavoidable banner is a stronger guarantee than auditing each section's wording in isolation.

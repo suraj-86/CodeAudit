@@ -87,7 +87,12 @@ export function WorkflowPage() {
 
       {state.status === 'success' ? (
         <div className="space-y-4">
-          <WorkflowResultView result={state.data} />
+          <WorkflowResultView
+            result={state.data}
+            language={language.id}
+            sourceFile={sourceFile}
+            referenceFile={referenceFile}
+          />
           <Button variant="secondary" onClick={startOver}>
             Start a new check
           </Button>

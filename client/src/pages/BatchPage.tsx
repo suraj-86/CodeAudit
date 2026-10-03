@@ -1,10 +1,12 @@
-import { useState } from 'react'
-import { runBatch, type BatchInput, type BatchPairComparison } from '../api'
+import { useMemo, useState } from 'react'
+import { runBatch, type BatchInput } from '../api'
 import { useLanguages } from '../hooks/useLanguages'
 import { useFilePrints } from '../hooks/useFilePrints'
+import { useFileText } from '../hooks/useFileText'
 import { useTask } from '../hooks/useTask'
 import { duplicateGroups, fileProblem } from '../lib/files'
 import { formatPercent } from '../lib/format'
+import { nameOf, resolveSelection, type Selection } from '../lib/batch-selection'
 import { Section } from '../components/Section'
 import { LanguagePicker } from '../components/LanguagePicker'
 import { DropZone } from '../components/DropZone'
@@ -14,6 +16,9 @@ import { Alert } from '../components/ui/Alert'
 import { ScanningLoader } from '../components/ScanningLoader'
 import { ErrorNotice } from '../components/ErrorNotice'
 import { BatchMatrix } from '../components/BatchMatrix'
+import { SignalsBanner } from '../components/SignalsBanner'
+import { CodeDiffView } from '../components/CodeDiffView'
+import { ResultSummary } from '../components/ResultSummary'
 
 const BATCH_CAPABLE = 'batch'
 
@@ -30,7 +35,18 @@ export function BatchPage() {
 
   const [submissions, setSubmissions] = useState<File[]>([])
   const [reference, setReference] = useState<File | null>(null)
-  const [selectedPair, setSelectedPair] = useState<BatchPairComparison | null>(null)
+  const [selection, setSelection] = useState<Selection | null>(null)
+  /**
+   * A snapshot of exactly what was submitted, taken at submit time. The
+   * backend assigns each submission an id in the same order the files
+   * were sent (see server/src/routes/batch.routes.ts), so zipping this
+   * array against the response's `submissions` by index recovers which
+   * File is which id — needed to show the actual code for a selected pair.
+   */
+  const [submittedFiles, setSubmittedFiles] = useState<{
+    submissions: File[]
+    reference: File
+  } | null>(null)
 
   const submissionPrints = useFilePrints(submissions)
   const referencePrints = useFilePrints(reference ? [reference] : [])
@@ -52,6 +68,7 @@ export function BatchPage() {
   const submit = () => {
     if (!language || !reference) return
     const input: BatchInput = { language: language.id, submissions, reference }
+    setSubmittedFiles({ submissions: [...submissions], reference })
     void run((signal) => runBatch(input, signal))
   }
 
@@ -59,8 +76,20 @@ export function BatchPage() {
     reset()
     setSubmissions([])
     setReference(null)
-    setSelectedPair(null)
+    setSelection(null)
+    setSubmittedFiles(null)
   }
+
+  const fileById = useMemo(() => {
+    const map = new Map<string, File>()
+    if (submittedFiles && state.status === 'success') {
+      state.data.submissions.forEach((submission, index) => {
+        const file = submittedFiles.submissions[index]
+        if (file) map.set(submission.id, file)
+      })
+    }
+    return map
+  }, [submittedFiles, state])
 
   if (languagesState.status === 'ready' && languages.length === 0) {
     return (
@@ -86,28 +115,55 @@ export function BatchPage() {
 
       {state.status === 'success' ? (
         <div className="space-y-4">
+          <ResultSummary
+            title="What ran"
+            items={[
+              { label: 'Submissions', value: `${state.data.submissions.length}` },
+              { label: 'Pairs compared', value: `${state.data.matrix.comparisons.length}` },
+              {
+                label: 'Flagged pairs',
+                value: `${state.data.suspiciousPairs.length}`,
+                tone: state.data.suspiciousPairs.length > 0 ? 'flag' : 'neutral',
+              },
+              {
+                label: 'Flagged vs. reference',
+                value: `${state.data.referenceComparisons.filter((c) => c.suspicious).length}`,
+                tone:
+                  state.data.referenceComparisons.some((c) => c.suspicious) ? 'flag' : 'neutral',
+              },
+            ]}
+          />
+
+          <SignalsBanner />
+
           <Section title={`${state.data.submissions.length} submissions compared`}>
             <BatchMatrix
               submissions={state.data.submissions}
               comparisons={state.data.matrix.comparisons}
-              onSelectPair={setSelectedPair}
+              onSelectPair={(pair) => setSelection({ kind: 'pair', pair })}
             />
           </Section>
 
-          {selectedPair && (
-            <Section title="Selected pair">
-              <PairDetail pair={selectedPair} submissions={state.data.submissions} />
+          {selection && (
+            <Section title="Selected comparison">
+              <SelectionDetail
+                selection={selection}
+                submissions={state.data.submissions}
+                fileById={fileById}
+                reference={submittedFiles?.reference ?? null}
+                language={language.id}
+              />
             </Section>
           )}
 
-          {state.data.suspiciousPairs.length > 0 && (
-            <Section title="Flagged pairs" description="Above the structural-similarity threshold.">
+          <Section title="Flagged pairs" description="Above the structural-similarity threshold.">
+            {state.data.suspiciousPairs.length > 0 ? (
               <ul className="space-y-1.5">
                 {state.data.suspiciousPairs.map((pair, index) => (
                   <li key={index}>
                     <button
                       type="button"
-                      onClick={() => setSelectedPair(pair)}
+                      onClick={() => setSelection({ kind: 'pair', pair })}
                       className="underline decoration-2 underline-offset-2 hover:decoration-coral"
                     >
                       {nameOf(state.data.submissions, pair.firstId)} ↔ {nameOf(state.data.submissions, pair.secondId)}
@@ -116,20 +172,35 @@ export function BatchPage() {
                   </li>
                 ))}
               </ul>
-            </Section>
-          )}
+            ) : (
+              <p className="text-ink-soft">
+                No pair crossed the similarity threshold. The check ran on all{' '}
+                {state.data.matrix.comparisons.length} pairs — this is a clean result, not a skipped one.
+              </p>
+            )}
+          </Section>
 
-          {state.data.referenceComparisons.length > 0 && (
-            <Section title="Against the reference">
+          <Section title="Against the reference">
+            {state.data.referenceComparisons.length > 0 ? (
               <ul className="space-y-1.5">
                 {state.data.referenceComparisons.map((c) => (
-                  <li key={c.submissionId} className={c.suspicious ? 'font-semibold text-[#c2263f]' : ''}>
-                    {c.submissionName}: {formatPercent(c.similarity)}
+                  <li key={c.submissionId}>
+                    <button
+                      type="button"
+                      onClick={() => setSelection({ kind: 'reference', comparison: c })}
+                      className={`underline decoration-2 underline-offset-2 hover:decoration-sky ${
+                        c.suspicious ? 'font-semibold text-[#c2263f]' : ''
+                      }`}
+                    >
+                      {c.submissionName}: {formatPercent(c.similarity)}
+                    </button>
                   </li>
                 ))}
               </ul>
-            </Section>
-          )}
+            ) : (
+              <p className="text-ink-soft">No reference comparisons were produced for this batch.</p>
+            )}
+          </Section>
 
           <Button variant="secondary" onClick={startOver}>
             Start a new batch
@@ -205,31 +276,51 @@ export function BatchPage() {
   )
 }
 
-function nameOf(submissions: Array<{ id: string; name: string }>, id: string): string {
-  return submissions.find((s) => s.id === id)?.name ?? id
-}
-
-function PairDetail({
-  pair,
+function SelectionDetail({
+  selection,
   submissions,
+  fileById,
+  reference,
+  language,
 }: {
-  pair: BatchPairComparison
+  selection: Selection
   submissions: Array<{ id: string; name: string }>
+  fileById: Map<string, File>
+  reference: File | null
+  language: string
 }) {
+  const resolved = resolveSelection(selection, submissions, fileById, reference)
+  const leftText = useFileText(resolved.leftFile)
+  const rightText = useFileText(resolved.rightFile)
+
   return (
-    <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-[0.92rem] sm:grid-cols-4">
-      <dt className="text-ink-soft">Pair</dt>
-      <dd className="col-span-3 font-semibold">
-        {nameOf(submissions, pair.firstId)} ↔ {nameOf(submissions, pair.secondId)}
-      </dd>
-      <dt className="text-ink-soft">Exact match</dt>
-      <dd className="col-span-3">{pair.exactMatch ? 'Yes — byte for byte identical' : 'No'}</dd>
-      <dt className="text-ink-soft">Structural similarity</dt>
-      <dd className="col-span-3">
-        {pair.structuralSimilarity === null
-          ? (pair.structuralUnsupportedReason ?? 'Not available')
-          : `${formatPercent(pair.structuralSimilarity)} (threshold ${formatPercent(pair.structuralThreshold)})`}
-      </dd>
-    </dl>
+    <div className="space-y-4">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-[0.92rem] sm:grid-cols-4">
+        <dt className="text-ink-soft">Comparing</dt>
+        <dd className="col-span-3 font-semibold">
+          {resolved.leftLabel} ↔ {resolved.rightLabel}
+        </dd>
+        <dt className="text-ink-soft">Exact match</dt>
+        <dd className="col-span-3">{resolved.exactMatch ? 'Yes — byte for byte identical' : 'No'}</dd>
+        <dt className="text-ink-soft">Structural similarity</dt>
+        <dd className="col-span-3">
+          {resolved.similarity === null
+            ? (resolved.unsupportedReason ?? 'Not available')
+            : `${formatPercent(resolved.similarity)} (threshold ${formatPercent(resolved.threshold)})`}
+        </dd>
+      </dl>
+
+      {leftText !== null && rightText !== null ? (
+        <CodeDiffView
+          leftLabel={resolved.leftLabel}
+          rightLabel={resolved.rightLabel}
+          leftText={leftText}
+          rightText={rightText}
+          language={language}
+        />
+      ) : (
+        <p className="text-ink-soft">Loading the files for comparison…</p>
+      )}
+    </div>
   )
 }
