@@ -7,7 +7,6 @@ interface AdvancedThresholdProps {
   disabled?: boolean
 }
 
-/** A tucked-away control for the structural-suspicion threshold. Backend default when untouched. */
 export function AdvancedThreshold({ value, defaultValue, onChange, disabled }: AdvancedThresholdProps) {
   return (
     <details className="group">

@@ -3,37 +3,15 @@
 @import "@fontsource-variable/spline-sans-mono";
 @import "tailwindcss";
 
-/*
- * Monaco's diff editor still shows a couple of its own icon-font glyphs
- * inline (next to line numbers) even with glyphMargin/revert-icon options
- * off; monaco-editor's package "exports" only expose .js subpaths, not its
- * CSS, so the font is registered directly here rather than through an
- * import of Monaco's own stylesheet.
- */
 @font-face {
   font-family: 'codicon';
   src: url('../node_modules/monaco-editor/esm/vs/base/browser/ui/codicons/codicon/codicon.ttf') format('truetype');
 }
 
-/*
- * Monaco's own stylesheet (injected at runtime via JS, which is why the
- * rest of the editor's look needs no CSS import at all) sets `.codicon`
- * elements to use this font — but CodeDiffViewImpl's custom `fontFamily`
- * editor option cascades onto them too, and wins, since nothing here
- * otherwise re-asserts the font for icon glyphs specifically.
- */
 .codicon {
   font-family: 'codicon' !important;
 }
 
-/*
- * CodeAudit design tokens.
- *
- * The look is a light table: tracing-paper background over a faint grid,
- * printed-proof controls with hard offset shadows, and a Bauhaus tile
- * "print" (see FilePrint) as the one memorable motif. Colours are named
- * for what they do in the product, not for the hue.
- */
 @theme {
   --color-paper: #e9eff5;
   --color-grid: #d3deea;

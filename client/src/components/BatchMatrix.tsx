@@ -27,7 +27,6 @@ function cellTone(cell: BatchPairComparison | undefined): string {
   return 'bg-mint/25'
 }
 
-/** Every submission against every other, as a heat-mapped grid of tiles. */
 export function BatchMatrix({ submissions, comparisons, onSelectPair }: BatchMatrixProps) {
   return (
     <div className="overflow-x-auto">

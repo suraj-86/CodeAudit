@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
 import { sha256OfFile } from '../lib/sha256'
-
-/** SHA-256 for each file, computed in the browser as files arrive. */
 export function useFilePrints(files: File[]): Map<File, string> {
   const [prints, setPrints] = useState<Map<File, string>>(new Map())
 

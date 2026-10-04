@@ -4,12 +4,6 @@ import { LanguagesContext, type LanguagesState } from '../hooks/languages-contex
 import { ScanningLoader } from './ScanningLoader'
 import { ErrorNotice } from './ErrorNotice'
 
-/**
- * Fetches GET /api/languages once and makes it available to the whole
- * app via useLanguages(). Every language-dependent decision (which
- * checks apply, upload limits) reads from here rather than being
- * hard-coded, so the frontend can't drift from what the backend enforces.
- */
 export function LanguagesProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<LanguagesState>({ status: 'loading' })
   const [attempt, setAttempt] = useState(0)

@@ -6,7 +6,6 @@ interface CapabilityChipsProps {
   keys: CapabilityKey[]
 }
 
-/** Shows, for the chosen language, which checks will run and which can't yet. */
 export function CapabilityChips({ language, keys }: CapabilityChipsProps) {
   return (
     <div className="space-y-2">

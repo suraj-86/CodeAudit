@@ -2,14 +2,12 @@ import { colorForNodeType } from '../lib/print'
 
 interface StructureStripProps {
   sequence: readonly string[]
-  /** When given, nodes that differ from this sequence are lifted and outlined. */
   against?: readonly string[]
   label: string
 }
 
 const OPERATOR_GLYPH = /^OPERATOR:(.+)$/
 
-/** One tile per syntax node, coloured by node type. Operators show their symbol. */
 export function StructureStrip({ sequence, against, label }: StructureStripProps) {
   const differing = against
     ? sequence.filter((type, i) => type !== against[i]).length + Math.max(0, against.length - sequence.length)

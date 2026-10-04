@@ -20,10 +20,8 @@ export function getLanguages(signal?: AbortSignal): Promise<LanguagesResponse> {
   return requestJson<LanguagesResponse>('/languages', { signal: signal ?? null })
 }
 
-/** Builds the multipart body for POST /api/analyze/workflow. */
 export function buildWorkflowForm(input: WorkflowInput): FormData {
   const form = new FormData()
-  // Text fields first, files last.
   form.append('language', input.language)
   form.append('runAI', input.runAI ? 'true' : 'false')
   if (input.projectName?.trim()) form.append('projectName', input.projectName.trim())
@@ -50,7 +48,6 @@ export function runWorkflow(
   })
 }
 
-/** Builds the multipart body for POST /api/analyze/batch. */
 export function buildBatchForm(input: BatchInput): FormData {
   const form = new FormData()
   form.append('language', input.language)
@@ -73,7 +70,6 @@ export function runBatch(
   })
 }
 
-/** A completed workflow result, ready to send to POST /api/reports. */
 export type ReportInput = Omit<WorkflowResult, 'warnings'>
 
 export function toReportInput(result: WorkflowResult): ReportInput {
@@ -89,7 +85,6 @@ export function toReportInput(result: WorkflowResult): ReportInput {
   }
 }
 
-/** Requests the PDF for a completed analysis. Returns the PDF as a Blob. */
 export function generateReportPdf(input: ReportInput, signal?: AbortSignal): Promise<Blob> {
   return requestBlob('/reports', {
     method: 'POST',

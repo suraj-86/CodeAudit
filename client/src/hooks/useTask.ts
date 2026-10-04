@@ -7,11 +7,6 @@ export type TaskState<T> =
   | { status: 'success'; data: T }
   | { status: 'error'; error: unknown }
 
-/**
- * Runs one cancellable async request at a time and exposes its state as
- * idle → loading → success | error. A newer run (or cancel/reset) makes
- * any older, still-pending run's result be ignored.
- */
 export function useTask<T>() {
   const [state, setState] = useState<TaskState<T>>({ status: 'idle' })
   const controller = useRef<AbortController | null>(null)

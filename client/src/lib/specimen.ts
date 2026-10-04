@@ -1,11 +1,3 @@
-/*
- * The landing-page "rename test". Structure sequences below are the real
- * output of the backend's own structural traversal (server/src/analysis/
- * structural/traversal.ts) for the snippet, so the demo shows what the
- * engine actually does. Renaming identifiers, adding comments and changing
- * a literal all leave the sequence untouched; changing an operator changes
- * exactly one node (index 18).
- */
 
 export const BASE_STRUCTURE: readonly string[] = [
   'translation_unit',

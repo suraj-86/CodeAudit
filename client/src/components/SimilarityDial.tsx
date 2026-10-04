@@ -6,7 +6,6 @@ interface SimilarityDialProps {
   suspicious: boolean
 }
 
-/** A stamped-percentage dial: fill sweeps to the score, threshold marked as a tick. */
 export function SimilarityDial({ similarity, threshold, suspicious }: SimilarityDialProps) {
   const angle = similarity * 360
   const thresholdAngle = threshold * 360

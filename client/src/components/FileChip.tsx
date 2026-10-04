@@ -6,7 +6,6 @@ interface FileChipProps {
   file: File
   hash: string | null
   problem?: string | null
-  /** Names of other files that have exactly the same fingerprint. */
   twins?: string[]
   onRemove?: () => void
   disabled?: boolean

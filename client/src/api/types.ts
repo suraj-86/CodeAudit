@@ -1,8 +1,3 @@
-/*
- * Wire types for the CodeAudit backend (see docs/api-specification.md).
- * These mirror the documented responses; the frontend never recomputes
- * any of this — it only displays what the backend returns.
- */
 
 export interface LanguageCapabilities {
   exactMatch: boolean
@@ -139,7 +134,6 @@ export interface BatchResult {
   referenceComparisons: ReferenceComparison[]
 }
 
-/** Request shapes used by the service layer. */
 export interface WorkflowInput {
   language: string
   source: File
@@ -147,7 +141,6 @@ export interface WorkflowInput {
   referenceLanguage?: string | undefined
   testCases?: TestCase[] | undefined
   runAI: boolean
-  /** 0–1. Omit to use the backend default. */
   structuralThreshold?: number | undefined
   projectName?: string | undefined
 }
@@ -156,6 +149,5 @@ export interface BatchInput {
   language: string
   submissions: File[]
   reference: File
-  /** 0–1. Omit to use the backend default. */
   structuralThreshold?: number | undefined
 }

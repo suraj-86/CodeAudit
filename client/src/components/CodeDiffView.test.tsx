@@ -76,8 +76,6 @@ describe('CodeDiffView (the lazy-loaded wrapper)', () => {
         language="cpp"
       />,
     )
-    // The real component resolves asynchronously (dynamic import), so the
-    // fallback is what's there synchronously, and the label is awaited.
     expect(screen.getByText('Loading the code viewer…')).toBeInTheDocument()
     expect(await screen.findByText('submission.cpp')).toBeInTheDocument()
   })

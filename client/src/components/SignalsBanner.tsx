@@ -5,13 +5,6 @@ const POINTS = [
   'These are independent signals — there is no combined score.',
 ]
 
-/**
- * A standing reminder that the checks below are separate, non-combinable
- * signals — not a verdict. Phase 13 requires this to be structurally
- * impossible to miss, not just a footnote on one panel, so it renders
- * once at the top of every results view rather than being folded into
- * each individual result section.
- */
 export function SignalsBanner() {
   return (
     <div className="border-2 border-ink bg-ink px-4 py-3 text-white sm:px-5">

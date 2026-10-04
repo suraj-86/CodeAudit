@@ -16,13 +16,6 @@ const TOGGLES: Array<{ key: keyof SpecimenOptions; label: string; description: s
   { key: 'operator', label: 'Change an operator', description: '− instead of +: this is a real structural change' },
 ]
 
-/**
- * The claim "structure comparison ignores names but catches real changes"
- * is falsifiable, so let people falsify it. Toggle cosmetic changes and
- * watch the structure hold still; toggle the operator and watch exactly
- * one tile lift. This is a live demo of server/src/analysis/structural/
- * traversal.ts's own output for this snippet — not a simulation.
- */
 export function RenameTestDemo() {
   const [options, setOptions] = useState<SpecimenOptions>({
     rename: false,

@@ -26,7 +26,6 @@ export function describeCapabilities(
   }
 }
 
-// "AI" should stay capitalised even in a lowercase sentence.
 const lowercaseLabel = (label: string): string =>
   label === 'AI-assisted analysis' ? 'AI-assisted analysis' : label.toLowerCase()
 
@@ -34,7 +33,6 @@ function list(keys: CapabilityKey[]): string {
   return keys.map((key) => lowercaseLabel(CAPABILITY_LABELS[key])).join(', ')
 }
 
-/** One plain sentence about what will and won't run for this language. */
 export function capabilitySentence(language: LanguageInfo, keys: CapabilityKey[]): string {
   const { available, unavailable } = describeCapabilities(language, keys)
   const runs = available.length ? `For ${language.label}: ${list(available)}.` : `For ${language.label}: nothing here is available yet.`

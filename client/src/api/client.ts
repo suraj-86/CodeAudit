@@ -1,11 +1,5 @@
 import { ApiError, NetworkError, isAbortError } from './errors'
 
-/**
- * Base URL for API requests. Defaults to "/api": in development Vite
- * proxies that path to the backend, and in production it works whenever
- * the frontend and backend share an origin. Override with
- * VITE_API_BASE_URL when the API lives elsewhere.
- */
 export function getApiBase(): string {
   const configured = import.meta.env.VITE_API_BASE_URL
   const base = configured && configured.trim() ? configured.trim() : '/api'
@@ -33,13 +27,11 @@ function retryAfterFrom(response: Response, details: unknown): number | undefine
   return Number.isFinite(header) && header > 0 ? header : undefined
 }
 
-/** Turns any non-2xx response into an ApiError, whatever its body looks like. */
 async function toApiError(response: Response): Promise<ApiError> {
   let body: unknown = null
   try {
     body = await response.json()
   } catch {
-    // Not JSON — e.g. an HTML error page from a proxy in front of the API.
   }
 
   if (isErrorEnvelope(body)) {

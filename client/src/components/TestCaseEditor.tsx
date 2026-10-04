@@ -8,7 +8,6 @@ interface TestCaseEditorProps {
   disabled?: boolean
 }
 
-/** Input/expected-output rows. An untouched row is dropped before sending. */
 export function TestCaseEditor({ cases, onChange, disabled }: TestCaseEditorProps) {
   const update = (key: string, patch: Partial<TestCaseDraft>) =>
     onChange(cases.map((c) => (c.key === key ? { ...c, ...patch } : c)))

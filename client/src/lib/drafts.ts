@@ -1,7 +1,6 @@
 import type { LanguageInfo, TestCase, UploadLimits } from '../api'
 import { fileFromCode, fileProblem } from './files'
 
-/** What a person has provided for one code slot: an uploaded file or pasted text. */
 export interface SourceDraft {
   mode: 'upload' | 'paste'
   file: File | null
@@ -38,7 +37,6 @@ export const newTestCaseDraft = (): TestCaseDraft => ({
   expectedOutput: '',
 })
 
-/** Drops untouched rows and numbers the rest the way the backend expects. */
 export function toTestCases(drafts: TestCaseDraft[]): TestCase[] {
   return drafts
     .filter((d) => d.input.trim() !== '' || d.expectedOutput.trim() !== '')

@@ -2,7 +2,6 @@ interface ScanningLoaderProps {
   label: string
 }
 
-/** A loading state shaped like a document being scanned, not a spinner. */
 export function ScanningLoader({ label }: ScanningLoaderProps) {
   return (
     <div role="status" className="flex items-center gap-4 border-2 border-ink bg-white px-5 py-4">

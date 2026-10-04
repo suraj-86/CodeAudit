@@ -1,9 +1,3 @@
-/*
- * The file "print": a 4×4 grid of Bauhaus tiles derived from a SHA-256.
- * Same bytes give the same print; change one character and every tile
- * changes. It is a picture of the fingerprint, not an analysis.
- */
-
 export const TILE_COLORS = [
   '#5a3cf0', // violet
   '#ffc02e', // marigold
@@ -33,7 +27,6 @@ export function isSha256Hex(value: string): boolean {
   return HEX_64.test(value)
 }
 
-/** 16 tiles, four hex characters each. Throws on anything but a 64-char hex digest. */
 export function printTiles(sha256: string): PrintTile[] {
   if (!isSha256Hex(sha256)) {
     throw new Error('printTiles expects a 64-character SHA-256 hex digest.')
@@ -44,7 +37,6 @@ export function printTiles(sha256: string): PrintTile[] {
     const first = parseInt(sha256.slice(i * 4, i * 4 + 2), 16)
     const second = parseInt(sha256.slice(i * 4 + 2, i * 4 + 4), 16)
     const colorIndex = first & 7
-    // Always a different colour from the foreground, so a shape never vanishes.
     const backgroundIndex = (colorIndex + 1 + ((first >> 3) % 7)) % TILE_COLORS.length
     tiles.push({
       shape: SHAPES[second % SHAPES.length]!,
@@ -55,17 +47,14 @@ export function printTiles(sha256: string): PrintTile[] {
   return tiles
 }
 
-/** Shortened digest for display: first 8 and last 4 characters. */
 export function shortHash(sha256: string): string {
   return sha256.length > 12 ? `${sha256.slice(0, 8)}…${sha256.slice(-4)}` : sha256
 }
 
-/** Stable colour for a syntax-node type, used by the structure strip. */
 export function colorForNodeType(type: string): string {
   if (type.startsWith('OPERATOR:')) return TILE_COLORS[1]!
   let hash = 5381
   for (let i = 0; i < type.length; i++) hash = ((hash << 5) + hash + type.charCodeAt(i)) >>> 0
-  // Skip marigold (index 1): that colour belongs to operators.
   const usable = [0, 2, 3, 4, 5, 6, 7]
   return TILE_COLORS[usable[hash % usable.length]!]!
 }

@@ -1,12 +1,3 @@
-/*
- * SHA-256 for the file "print". The backend returns each file's SHA-256 in
- * its results; computing the same digest in the browser lets a dropped file
- * show its print immediately, and lets the results screen show the very
- * same print for the very same bytes.
- *
- * crypto.subtle only exists on secure origins (https or localhost), so a
- * small pure-JS implementation covers dev over a LAN address.
- */
 
 const K = new Uint32Array([
   0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -80,7 +71,6 @@ function toHex(buffer: ArrayBuffer): string {
 export async function sha256Hex(data: Uint8Array): Promise<string> {
   const subtle = globalThis.crypto?.subtle
   if (subtle) {
-    // Copy into a plain ArrayBuffer-backed view for the DOM typings.
     const copy = new Uint8Array(data)
     return toHex(await subtle.digest('SHA-256', copy))
   }

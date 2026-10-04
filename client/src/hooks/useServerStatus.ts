@@ -3,7 +3,6 @@ import { getHealth } from '../api'
 
 export type ServerStatus = 'checking' | 'online' | 'offline'
 
-/** Checks /api/health on mount and whenever recheck() is called. */
 export function useServerStatus() {
   const [status, setStatus] = useState<ServerStatus>('checking')
   const [attempt, setAttempt] = useState(0)

@@ -4,17 +4,12 @@ interface DropZoneProps {
   id: string
   label: string
   hint?: ReactNode
-  /** File extensions offered in the picker, e.g. [".cpp"]. Validation happens after selection. */
   accept: string[]
   multiple?: boolean
   disabled?: boolean
   onFiles: (files: File[]) => void
 }
 
-/**
- * A drop target framed by registration marks, like the alignment marks on
- * a printed proof. Dragging a file over it snaps the marks inward.
- */
 export function DropZone({ id, label, hint, accept, multiple = false, disabled = false, onFiles }: DropZoneProps) {
   const input = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)

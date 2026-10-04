@@ -1,7 +1,6 @@
 import { isSha256Hex, printTiles, type PrintTile } from '../lib/print'
 
 interface FilePrintProps {
-  /** SHA-256 hex digest, or null while it is still being computed. */
   hash: string | null
   size?: number
   label?: string
@@ -27,10 +26,6 @@ function Shape({ tile }: { tile: PrintTile }) {
   }
 }
 
-/**
- * A file's print: a 4×4 Bauhaus tile pattern drawn from its SHA-256.
- * Identical files get identical prints; any change scrambles all of it.
- */
 export function FilePrint({ hash, size = 64, label, className = '' }: FilePrintProps) {
   const tiles = hash && isSha256Hex(hash) ? printTiles(hash) : null
 

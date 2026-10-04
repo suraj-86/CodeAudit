@@ -9,7 +9,6 @@ interface ErrorNoticeProps {
   onRetry?: () => void
 }
 
-/** Turns any thrown error from the API layer into one consistent notice. */
 export function ErrorNotice({ error, onRetry }: ErrorNoticeProps) {
   if (error instanceof ApiError && error.code === 'RATE_LIMITED') {
     return (

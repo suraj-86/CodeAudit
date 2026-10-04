@@ -4,7 +4,6 @@ interface WarningsListProps {
   warnings: string[]
 }
 
-/** The workflow's own "here's what didn't run, and why" list. */
 export function WarningsList({ warnings }: WarningsListProps) {
   if (warnings.length === 0) return null
   return (

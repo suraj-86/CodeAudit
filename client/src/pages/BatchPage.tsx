@@ -36,13 +36,7 @@ export function BatchPage() {
   const [submissions, setSubmissions] = useState<File[]>([])
   const [reference, setReference] = useState<File | null>(null)
   const [selection, setSelection] = useState<Selection | null>(null)
-  /**
-   * A snapshot of exactly what was submitted, taken at submit time. The
-   * backend assigns each submission an id in the same order the files
-   * were sent (see server/src/routes/batch.routes.ts), so zipping this
-   * array against the response's `submissions` by index recovers which
-   * File is which id — needed to show the actual code for a selected pair.
-   */
+
   const [submittedFiles, setSubmittedFiles] = useState<{
     submissions: File[]
     reference: File

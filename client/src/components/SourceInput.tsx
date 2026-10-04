@@ -18,7 +18,6 @@ interface SourceInputProps {
   disabled?: boolean
 }
 
-/** One code slot: switch between dropping a file and pasting text. */
 export function SourceInput({
   id,
   label,

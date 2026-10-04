@@ -20,7 +20,6 @@ import { formatPercent } from '../lib/format'
 interface WorkflowResultViewProps {
   result: WorkflowResult
   language: string
-  /** The exact files submitted for this result, so the diff view shows what was actually checked. */
   sourceFile: File | null
   referenceFile: File | null
 }
@@ -65,10 +64,7 @@ export function WorkflowResultView({
           {
             label: 'Exact match',
             value: exactMatchNote
-              ? // The backend reports exact-match only as evidence prose (no
-                // separate boolean field on the result); its wording is fixed
-                // by analysis-workflow.ts, so matching it exactly is safe for
-                // this display-only purpose.
+              ?
                 exactMatchNote.description === 'The submission is byte-identical to the reference.'
                 ? 'Yes'
                 : 'No'
