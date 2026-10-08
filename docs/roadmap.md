@@ -834,16 +834,17 @@ Everything below was verified directly — not assumed — in the environment th
 
 **Documentation:** a sweep of `requirements.md`, `scope.md`, `vision.md`, `analysis-engine.md`, `architecture.md`, and `api-specification.md` for stale status language found and fixed one real instance (`requirements.md`'s execution section still said comparison UI, reporting, and "multi-language execution workers" were future work, and referenced Phase 10 Docker hardening that has since completed); the rest of the "future work" language found was legitimate (GitHub/GitLab import, persistent accounts — genuinely out of V1 scope, not completed-but-undocumented). A `Known Limitations` section and a `Demonstration checklist` were added to `README.md`.
 
+**Python execution against a real Docker daemon — confirmed.** The project owner's first real run against the previously-shipped image failed every execution with `runner: expected source code argument`, traced to the Dockerfile's `ENTRYPOINT` doubling up with the command `docker-worker.ts` already supplies (Decision 053: the image no longer sets an `ENTRYPOINT`). After rebuilding the image with the fix, the project owner re-ran the same submission/reference/test-case set through `/check`: 3 of 3 test cases passed for both the submission and the reference, with real captured output matching the expected JSON exactly. This was the one item neither Claude's sandbox (no Docker daemon available) nor the earlier Playwright pass (necessarily using a fake process runner) could exercise directly, so it needed the project owner's own machine to close out.
+
 ### What's left
 
-1. **A real Python execution run against Docker, rebuilt with the fixed image.** The project owner's first real Docker run against the previously-shipped image surfaced a genuine bug — every execution failed with `runner: expected source code argument`, traced to the Dockerfile's `ENTRYPOINT` doubling up with the command `docker-worker.ts` already supplies (Decision 053). The image no longer sets an `ENTRYPOINT`; this was verified by simulating Docker's exact argument-passing behavior and running `runner.py` directly (correct output for both a plain-argument case and a stdin/JSON case matching the project owner's own test), but **not yet against a real `docker build` + `docker run`**, since no Docker daemon is available in this environment either. The project owner needs to rebuild the image (`docker build -t codeaudit/python server/runtime/python`) and re-run a `/check` with test cases to confirm the fix holds end-to-end.
-2. **An actual deployment**, per the README's new Deployment section (Render for the backend, Vercel for the frontend), followed by the demonstration checklist run against the live URLs rather than `localhost`.
+1. **An actual deployment**, per the README's new Deployment section (Render for the backend, Vercel for the frontend), followed by the demonstration checklist run against the live URLs rather than `localhost`.
 
 Exit condition:
 
 The complete CodeAudit V1 workflow is stable, demonstrable, documented, and deployable.
 
-**Status: IN PROGRESS** — everything verifiable without Docker or hosting credentials is done; closing this phase out depends on the project owner's results from "What's left" above.
+**Status: IN PROGRESS** — everything is verified except the live deployment step, which only the project owner can do (real hosting credentials).
 
 ---
 
