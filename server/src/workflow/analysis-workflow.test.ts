@@ -107,7 +107,65 @@ test("runs exact-match and structural analysis when a C++ reference is provided"
     );
 });
 
-test("skips structural analysis for non-C++ languages instead of misparsing", async () => {
+test("runs structural analysis for Python submissions too, not just C++", async () => {
+    const orchestrator = new AnalysisWorkflowOrchestrator(
+        fakeExecutionManager(),
+        fakeAIAnalysisService(),
+    );
+
+    const result = await orchestrator.run({
+        source: {
+            filename: "submission.py",
+            language: "python",
+            source: Buffer.from(
+                "def add(a, b):\n    return a + b\n",
+                "utf8",
+            ),
+        },
+        reference: {
+            filename: "reference.py",
+            language: "python",
+            source: Buffer.from(
+                "def add(x, y):\n    return x + y\n",
+                "utf8",
+            ),
+        },
+        runAI: false,
+    });
+
+    assert.ok(result.similarity);
+    assert.equal(result.similarity?.similarity, 1);
+});
+
+test("skips structural analysis for a genuinely unsupported language instead of misparsing", async () => {
+    const orchestrator = new AnalysisWorkflowOrchestrator(
+        fakeExecutionManager(),
+        fakeAIAnalysisService(),
+    );
+
+    const result = await orchestrator.run({
+        source: {
+            filename: "submission.cobol",
+            language: "cobol",
+            source: Buffer.from("DISPLAY 'HI'.", "utf8"),
+        },
+        reference: {
+            filename: "reference.cobol",
+            language: "cobol",
+            source: Buffer.from("DISPLAY 'HI'.", "utf8"),
+        },
+        runAI: false,
+    });
+
+    assert.equal(result.similarity, undefined);
+    assert.ok(
+        result.warnings.some((warning) =>
+            warning.includes("not supported for this language"),
+        ),
+    );
+});
+
+test("skips structural analysis when the submission and reference are different languages", async () => {
     const orchestrator = new AnalysisWorkflowOrchestrator(
         fakeExecutionManager(),
         fakeAIAnalysisService(),
@@ -120,9 +178,12 @@ test("skips structural analysis for non-C++ languages instead of misparsing", as
             source: Buffer.from("print(1)", "utf8"),
         },
         reference: {
-            filename: "reference.py",
-            language: "python",
-            source: Buffer.from("print(1)", "utf8"),
+            filename: "reference.java",
+            language: "java",
+            source: Buffer.from(
+                "class Main { public static void main(String[] a) {} }",
+                "utf8",
+            ),
         },
         runAI: false,
     });
@@ -130,7 +191,7 @@ test("skips structural analysis for non-C++ languages instead of misparsing", as
     assert.equal(result.similarity, undefined);
     assert.ok(
         result.warnings.some((warning) =>
-            warning.includes("C++ submissions only"),
+            warning.includes("different languages"),
         ),
     );
 });

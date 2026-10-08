@@ -1,7 +1,8 @@
 import { compareFiles } from "../exact-match/compare.js";
-import { parseCpp } from "../structural/cpp-parser.js";
+import { parseSource } from "../structural/source-parser.js";
 import { structuralSequence } from "../structural/traversal.js";
 import { compareStructuralSequences } from "../structural/compare.js";
+import { supportsCapability } from "../../config/capabilities.js";
 import type { SubmissionPair } from "./pairs.js";
 
 export interface BatchPairComparison {
@@ -17,19 +18,41 @@ export interface BatchPairComparison {
 }
 
 /**
- * Structural (AST) comparison currently supports C++ only, matching the
- * boundary already enforced in ./reference.ts. A pair is only eligible
- * for structural comparison when both submissions are C++; otherwise the
- * pair is still exact-matched, but structural similarity is reported as
- * unavailable rather than silently parsed as C++.
+ * Structural (AST) comparison is available for every language the
+ * capabilities system marks `structural: true` (see config/capabilities.ts
+ * and Decision 050), matching the boundary enforced in ./reference.ts. A
+ * pair is only eligible when both submissions support structural analysis
+ * AND are the same language; otherwise the pair is still exact-matched,
+ * but structural similarity is reported as unavailable rather than
+ * silently parsed as if both sides shared a grammar.
  */
 function isStructurallySupported(
     pair: SubmissionPair,
 ): boolean {
     return (
-        pair.first.language.toLowerCase() === "cpp" &&
-        pair.second.language.toLowerCase() === "cpp"
+        supportsCapability(pair.first.language, "structural") &&
+        supportsCapability(pair.second.language, "structural") &&
+        pair.first.language.toLowerCase() ===
+            pair.second.language.toLowerCase()
     );
+}
+
+function structuralUnsupportedReason(
+    pair: SubmissionPair,
+): string {
+    // Checked in this order deliberately: a genuinely unsupported
+    // language is the more specific, more useful reason — naming it
+    // even when the pair also happens to be cross-language avoids the
+    // misleading implication that matching languages would be enough.
+    if (!supportsCapability(pair.first.language, "structural")) {
+        return `Structural comparison is not supported for "${pair.first.language}" yet.`;
+    }
+
+    if (!supportsCapability(pair.second.language, "structural")) {
+        return `Structural comparison is not supported for "${pair.second.language}" yet.`;
+    }
+
+    return "Structural comparison requires both submissions to be the same language.";
 }
 
 export function compareSubmissionPair(
@@ -52,15 +75,15 @@ export function compareSubmissionPair(
             structuralThreshold,
             structuralSuspicious: false,
             structuralUnsupportedReason:
-                "Structural comparison currently supports C++ submissions only.",
+                structuralUnsupportedReason(pair),
         };
     }
 
     const firstSource = pair.first.source.toString("utf8");
     const secondSource = pair.second.source.toString("utf8");
 
-    const firstTree = parseCpp(firstSource);
-    const secondTree = parseCpp(secondSource);
+    const firstTree = parseSource(firstSource, pair.first.language);
+    const secondTree = parseSource(secondSource, pair.second.language);
 
     const firstSequence = structuralSequence(
         firstTree.rootNode,

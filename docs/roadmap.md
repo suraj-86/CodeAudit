@@ -85,6 +85,8 @@ Controlled examples produce stable structural representations.
 
 **Status: COMPLETE**
 
+> **Update (during Phase 14):** structural parsing was generalized from C++-only to all six supported languages (C, C++, Java, JavaScript, TypeScript, Python), at the project owner's explicit request. This was a parsing-layer-only change — the comparison logic built in this phase (`structural/traversal.ts`) was already written against Tree-sitter's generic node API rather than any C++-specific node types, so generalizing meant only replacing the single-grammar `cpp-parser.ts` with a `source-parser.ts` that dispatches by language, not touching the structural representation itself. See Decision 050.
+
 ---
 
 ## Phase 4 — N-Gram & Similarity Engine
@@ -145,6 +147,8 @@ Exit condition:
 A practical-test batch can be analyzed without manual pair-by-pair uploads.
 
 **Status: COMPLETE**
+
+> **Update (during Phase 14):** batch and reference comparison were generalized from C++-only to every language the structural engine supports (Decision 050), at the project owner's explicit request ("class test" in their words, referring to this batch/reference feature). `batch/compare.ts` and `batch/reference.ts` now dispatch on each submission's actual language via the capabilities system instead of hard-coding `"cpp"`, and a pair spanning two different (but individually supported) languages is reported with its own distinct "different languages" reason rather than being misparsed or lumped in with "unsupported language" (Decision 051).
 
 ---
 

@@ -42,7 +42,7 @@ export function HomePage() {
           <div>
             <dt className="font-semibold">Structure</dt>
             <dd className="text-ink-soft">
-              Same skeleton once names, formatting and comments are stripped away — currently for C++.
+              Same skeleton once names, formatting and comments are stripped away.
             </dd>
           </div>
           <div>

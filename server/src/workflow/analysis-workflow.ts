@@ -1,7 +1,7 @@
 import { supportsCapability } from "../config/capabilities.js";
 import { calculateSha256 } from "../analysis/exact-match/hash.js";
 import { compareFiles } from "../analysis/exact-match/compare.js";
-import { parseCpp } from "../analysis/structural/cpp-parser.js";
+import { parseSource } from "../analysis/structural/source-parser.js";
 import { structuralSequence } from "../analysis/structural/traversal.js";
 import { compareStructuralSequences } from "../analysis/structural/compare.js";
 import type { StructuralSimilarityResult } from "../analysis/structural/similarity-result.js";
@@ -184,16 +184,28 @@ export class AnalysisWorkflowOrchestrator {
             !supportsStructural(request.reference)
         ) {
             warnings.push(
-                "Structural similarity skipped: currently supported for C++ submissions only.",
+                "Structural similarity skipped: not supported for this language yet.",
             );
             return undefined;
         }
 
-        const sourceTree = parseCpp(
+        if (
+            request.source.language.toLowerCase() !==
+            request.reference.language.toLowerCase()
+        ) {
+            warnings.push(
+                "Structural similarity skipped: the submission and reference are different languages.",
+            );
+            return undefined;
+        }
+
+        const sourceTree = parseSource(
             request.source.source.toString("utf8"),
+            request.source.language,
         );
-        const referenceTree = parseCpp(
+        const referenceTree = parseSource(
             request.reference.source.toString("utf8"),
+            request.reference.language,
         );
 
         const result = compareStructuralSequences(

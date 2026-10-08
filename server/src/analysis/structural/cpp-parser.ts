@@ -1,19 +1,11 @@
-import { Language, Parser, Tree } from "web-tree-sitter";
-import { getWasmPath } from "tree-sitter-wasm";
+import type { Tree } from "web-tree-sitter";
+import { parseSource } from "./source-parser.js";
 
-await Parser.init();
-
-const cppLanguage = await Language.load(getWasmPath("cpp"));
-
-const parser = new Parser();
-parser.setLanguage(cppLanguage);
-
+/**
+ * A C++-specific convenience wrapper over the generic parser (see
+ * source-parser.ts), kept so existing C++-specific tests and call sites
+ * don't need to name the language as a string.
+ */
 export function parseCpp(source: string): Tree {
-    const tree = parser.parse(source);
-
-    if (tree === null) {
-        throw new Error("Tree-sitter returned no syntax tree.");
-    }
-
-    return tree;
+    return parseSource(source, "cpp");
 }

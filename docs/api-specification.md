@@ -79,6 +79,8 @@ Execution support may differ from parsing support.
 >   }
 > }
 > ```
+>
+> **Update (Phase 14):** `structural` and `batch` are now `true` for every supported language (`c`, `cpp`, `java`, `javascript`, `typescript`, `python`), not just `cpp` as shown in the example above — see Decision 050. `execution` remains `true` for Python only.
 
 ## 5. Source-Code Upload
 
@@ -275,7 +277,9 @@ comparisons are required.
 
 The endpoint must enforce a configurable maximum batch size.
 
-> **Implementation note (Phase 10):** the shipped `POST /api/analyze/batch` requires a `reference` file on every call and returns reference comparisons alongside the pairwise matrix in one response, rather than splitting batch and reference analysis into two separate endpoints. This follows the underlying `analyzeBatch()` orchestrator built in Phase 6, which always compares against a reference. It also currently requires `language: "cpp"` for every submission, since structural/reference comparison (Phase 6) is C++-only; other languages are rejected with a structured `UNSUPPORTED_LANGUAGE` error rather than silently mis-parsed. Request fields: `language` (form field), `submissions` (repeated file field), `reference` (single file field), optional `structuralThreshold` (0–1, default 0.75). Response fields: `submissions` (id/name/language only — no raw source bytes), `matrix`, `suspiciousPairs`, `referenceComparisons`.
+> **Implementation note (Phase 10):** the shipped `POST /api/analyze/batch` requires a `reference` file on every call and returns reference comparisons alongside the pairwise matrix in one response, rather than splitting batch and reference analysis into two separate endpoints. This follows the underlying `analyzeBatch()` orchestrator built in Phase 6, which always compares against a reference. It requires every submission in a batch to declare the same `language`, and that language must support structural comparison (`capabilities.structural`, from `GET /api/languages`); a genuinely unsupported language is rejected with a structured `UNSUPPORTED_LANGUAGE` error rather than silently mis-parsed. Request fields: `language` (form field), `submissions` (repeated file field), `reference` (single file field), optional `structuralThreshold` (0–1, default 0.75). Response fields: `submissions` (id/name/language only — no raw source bytes), `matrix`, `suspiciousPairs`, `referenceComparisons`.
+>
+> **Update (Phase 14):** this was originally C++-only; structural/reference comparison was generalized to every language that supports it (all six as of Decision 050), so the `language` field now accepts any of `c`, `cpp`, `java`, `javascript`, `typescript`, `python`.
 
 ## 8. Reference Analysis
 

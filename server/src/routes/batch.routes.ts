@@ -79,8 +79,7 @@ router.post(
             return res.status(400).json({
                 error: {
                     code: "UNSUPPORTED_LANGUAGE",
-                    message:
-                        "Batch/reference structural analysis currently supports C++ submissions only.",
+                    message: `Batch/reference analysis is not supported for language "${language}".`,
                     details: null,
                 },
             });

@@ -210,3 +210,58 @@ test("GeminiAnalysisProvider times out a slow request", async () => {
         /timed out after 20 ms/i,
     );
 });
+test("GeminiAnalysisProvider extracts the clean message from a raw Gemini API error", async () => {
+    const client: GeminiClient = {
+        models: {
+            async generateContent() {
+                throw new Error(
+                    JSON.stringify({
+                        error: {
+                            code: 503,
+                            message:
+                                "This model is currently experiencing high demand. Please try again later.",
+                            status: "UNAVAILABLE",
+                        },
+                    }),
+                );
+            },
+        },
+    };
+
+    const provider = new GeminiAnalysisProvider({ client });
+
+    const result = await provider.analyze({
+        language: "Python",
+        source: "print('hello')",
+    });
+
+    assert.equal(result.available, false);
+    assert.equal(
+        result.error,
+        "This model is currently experiencing high demand. Please try again later.",
+    );
+    assert.ok(!result.error?.includes("{"));
+});
+
+test("GeminiAnalysisProvider passes through a plain-text error unchanged", async () => {
+    const client: GeminiClient = {
+        models: {
+            async generateContent() {
+                throw new Error("ECONNREFUSED: connection refused");
+            },
+        },
+    };
+
+    const provider = new GeminiAnalysisProvider({ client });
+
+    const result = await provider.analyze({
+        language: "Python",
+        source: "print('hello')",
+    });
+
+    assert.equal(result.available, false);
+    assert.equal(
+        result.error,
+        "ECONNREFUSED: connection refused",
+    );
+});

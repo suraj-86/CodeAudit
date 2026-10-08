@@ -397,9 +397,36 @@ Do not describe the indicator as a proven probability of AI authorship.
         error: unknown,
     ): string {
         if (error instanceof Error) {
-            return error.message;
+            return this.extractApiMessage(error.message);
         }
 
         return "Gemini analysis failed.";
+    }
+
+    private extractApiMessage(message: string): string {
+        try {
+            const parsed: unknown = JSON.parse(message);
+
+            if (
+                typeof parsed === "object" &&
+                parsed !== null &&
+                "error" in parsed &&
+                typeof (parsed as { error: unknown }).error ===
+                    "object" &&
+                (parsed as { error: object | null }).error !== null
+            ) {
+                const apiError = (
+                    parsed as { error: { message?: unknown } }
+                ).error;
+
+                if (typeof apiError.message === "string") {
+                    return apiError.message;
+                }
+            }
+        } catch {
+            // Not JSON — message was already plain text.
+        }
+
+        return message;
     }
 }

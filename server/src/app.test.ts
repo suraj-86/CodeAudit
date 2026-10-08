@@ -41,7 +41,8 @@ test("GET /api/languages exposes per-language capabilities and upload limits", a
     assert.equal(byId.cpp.capabilities.batch, true);
     assert.equal(byId.cpp.capabilities.execution, false);
     assert.equal(byId.python.capabilities.execution, true);
-    assert.equal(byId.python.capabilities.structural, false);
+    assert.equal(byId.python.capabilities.structural, true);
+    assert.equal(byId.java.capabilities.structural, true);
     assert.equal(byId.java.capabilities.exactMatch, true);
 
     assert.equal(typeof response.body.limits.maxFileSizeBytes, "number");
@@ -276,25 +277,48 @@ test("POST /api/analyze/batch requires a reference submission", async () => {
     assert.equal(response.body.error.code, "REFERENCE_REQUIRED");
 });
 
-test("POST /api/analyze/batch rejects non-C++ languages", async () => {
+test("POST /api/analyze/batch rejects genuinely unsupported languages", async () => {
     const response = await request(app)
         .post("/api/analyze/batch")
-        .field("language", "python")
+        .field("language", "cobol")
         .attach(
             "submissions",
             Buffer.from("print(1)", "utf8"),
-            "a.py",
+            "a.cobol",
         )
         .attach(
             "reference",
             Buffer.from("print(1)", "utf8"),
-            "ref.py",
+            "ref.cobol",
         );
 
     assert.equal(response.status, 400);
     assert.equal(
         response.body.error.code,
         "UNSUPPORTED_LANGUAGE",
+    );
+});
+
+test("POST /api/analyze/batch supports structural comparison for Python, not just C++", async () => {
+    const response = await request(app)
+        .post("/api/analyze/batch")
+        .field("language", "python")
+        .attach(
+            "submissions",
+            Buffer.from("def add(a, b):\n    return a + b\n", "utf8"),
+            "a.py",
+        )
+        .attach(
+            "reference",
+            Buffer.from("def add(a, b):\n    return a + b\n", "utf8"),
+            "ref.py",
+        );
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.submissions.length, 1);
+    assert.equal(
+        response.body.referenceComparisons[0].similarity,
+        1,
     );
 });
 

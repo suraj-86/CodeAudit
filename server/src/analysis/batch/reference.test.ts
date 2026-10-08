@@ -129,3 +129,72 @@ assert(
 
 console.log("PASS: reference comparison");
 console.log("PASS: reference batch analysis");
+
+function pythonSubmission(
+    id: string,
+    name: string,
+    source: string,
+): BatchSubmission {
+    return {
+        id,
+        name,
+        language: "python",
+        source: Buffer.from(source, "utf8"),
+    };
+}
+
+const pythonReference = pythonSubmission(
+    "reference",
+    "reference.py",
+    "def add(a, b):\n    return a + b\n",
+);
+
+const pythonIdentical = pythonSubmission(
+    "submission-1",
+    "submission1.py",
+    "def add(x, y):\n    return x + y\n",
+);
+
+const pythonResult = compareSubmissionToReference(
+    pythonReference,
+    pythonIdentical,
+    0.95,
+);
+
+assert(
+    pythonResult.similarity === 1,
+    "Reference analysis must work for Python, not just C++.",
+);
+
+console.log("PASS: reference comparison works for Python too");
+
+let threwForUnsupportedLanguage = false;
+
+try {
+    compareSubmissionToReference(
+        {
+            id: "ref",
+            name: "ref.cobol",
+            language: "cobol",
+            source: Buffer.from("DISPLAY 'HI'.", "utf8"),
+        },
+        {
+            id: "sub",
+            name: "sub.cobol",
+            language: "cobol",
+            source: Buffer.from("DISPLAY 'HI'.", "utf8"),
+        },
+        0.95,
+    );
+} catch {
+    threwForUnsupportedLanguage = true;
+}
+
+assert(
+    threwForUnsupportedLanguage,
+    "A genuinely unsupported language should throw rather than being silently parsed.",
+);
+
+console.log(
+    "PASS: reference comparison rejects a genuinely unsupported language",
+);

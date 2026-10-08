@@ -1,6 +1,7 @@
-import { parseCpp } from "../structural/cpp-parser.js";
+import { parseSource } from "../structural/source-parser.js";
 import { structuralSequence } from "../structural/traversal.js";
 import { compareStructuralSequences } from "../structural/compare.js";
+import { supportsCapability } from "../../config/capabilities.js";
 import type { BatchSubmission } from "./submission.js";
 
 export interface ReferenceComparison {
@@ -16,14 +17,14 @@ export interface ReferenceComparison {
 function getStructuralSequence(
     submission: BatchSubmission,
 ): string[] {
-    if (submission.language.toLowerCase() !== "cpp") {
+    if (!supportsCapability(submission.language, "structural")) {
         throw new Error(
-            `Reference analysis currently supports C++ submissions only.`,
+            `Reference analysis is not supported for language "${submission.language}" yet.`,
         );
     }
 
     const source = submission.source.toString("utf8");
-    const tree = parseCpp(source);
+    const tree = parseSource(source, submission.language);
 
     return structuralSequence(tree.rootNode);
 }

@@ -88,7 +88,7 @@ if (differentResult.hashA === differentResult.hashB) {
 
 if (differentResult.structuralSimilarity === null) {
     throw new Error(
-        "C++ pairs should always receive a structural similarity value.",
+        "Same-language pairs should always receive a structural similarity value.",
     );
 }
 
@@ -137,19 +137,23 @@ const mixedLanguageResult = compareSubmissionPair(
 
 if (mixedLanguageResult.structuralSimilarity !== null) {
     throw new Error(
-        "Non-C++ pairs must not receive a fabricated structural similarity value.",
+        "Pairs in different languages must not receive a fabricated structural similarity value.",
     );
 }
 
 if (mixedLanguageResult.structuralSuspicious) {
     throw new Error(
-        "Non-C++ pairs must never be flagged as structurally suspicious.",
+        "Pairs in different languages must never be flagged as structurally suspicious.",
     );
 }
 
-if (!mixedLanguageResult.structuralUnsupportedReason) {
+if (
+    !mixedLanguageResult.structuralUnsupportedReason
+        ?.toLowerCase()
+        .includes("same language")
+) {
     throw new Error(
-        "Non-C++ pairs must report why structural comparison was skipped.",
+        "A cross-language pair must explain that both sides need to be the same language.",
     );
 }
 
@@ -160,5 +164,45 @@ if (typeof mixedLanguageResult.exactMatch !== "boolean") {
 }
 
 console.log(
-    "PASS: non-C++ pairs skip structural comparison instead of being parsed as C++",
+    "PASS: pairs in different languages skip structural comparison instead of being misparsed",
+);
+
+const unsupportedLanguagePair: SubmissionPair = {
+    first: {
+        id: "A",
+        name: "A.cobol",
+        language: "cobol",
+        source: Buffer.from("DISPLAY 'HELLO'.", "utf8"),
+    },
+    second: {
+        id: "B",
+        name: "B.cobol",
+        language: "cobol",
+        source: Buffer.from("DISPLAY 'WORLD'.", "utf8"),
+    },
+};
+
+const unsupportedLanguageResult = compareSubmissionPair(
+    unsupportedLanguagePair,
+    0.70,
+);
+
+if (unsupportedLanguageResult.structuralSimilarity !== null) {
+    throw new Error(
+        "A genuinely unsupported language must not receive a fabricated structural similarity value.",
+    );
+}
+
+if (
+    !unsupportedLanguageResult.structuralUnsupportedReason
+        ?.toLowerCase()
+        .includes("not supported")
+) {
+    throw new Error(
+        "A genuinely unsupported language must be named as the specific reason, not blamed on a language mismatch.",
+    );
+}
+
+console.log(
+    "PASS: a genuinely unsupported language reports why, rather than a same-language message",
 );
