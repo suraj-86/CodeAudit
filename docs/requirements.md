@@ -114,7 +114,7 @@ The system shall report pass, fail, runtime error, compilation error, timeout, u
 
 The system shall optionally invoke a configured external AI-analysis service through a provider abstraction.
 
-The current V1 implementation shall provide a Gemini provider using the `@google/genai` SDK. The default model shall be `gemini-3-flash-preview`, with optional `GEMINI_MODEL` override. Provider credentials shall be supplied through `GEMINI_API_KEY`.
+The current V1 implementation shall provide a Gemini provider using the `@google/genai` SDK. The default model shall be `gemini-3.5-flash`, with optional `GEMINI_MODEL` override. Provider credentials shall be supplied through `GEMINI_API_KEY`.
 
 The AI-analysis endpoint shall accept a programming language and non-empty source code, invoke the provider, validate the provider response, and return a normalized AI-analysis result.
 

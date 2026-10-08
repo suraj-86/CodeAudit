@@ -148,7 +148,7 @@ Code execution must be isolated from the main application process.
 
 AI-related analysis is an independent V1 feature.
 
-CodeAudit sends source code and the selected programming language to the configured external AI-analysis provider. The current implementation uses Google Gemini through the `@google/genai` SDK. The default model is `gemini-3-flash-preview`, with optional model override through `GEMINI_MODEL`.
+CodeAudit sends source code and the selected programming language to the configured external AI-analysis provider. The current implementation uses Google Gemini through the `@google/genai` SDK. The default model is `gemini-3.5-flash`, with optional model override through `GEMINI_MODEL`.
 
 The AI-analysis capability includes:
 

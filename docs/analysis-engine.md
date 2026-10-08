@@ -455,7 +455,7 @@ Validation / Normalization
 AIAnalysisResult
 ```
 
-The current provider uses Google Gemini through the `@google/genai` SDK. The default model is `gemini-3-flash-preview`. The model can be overridden through `GEMINI_MODEL`.
+The current provider uses Google Gemini through the `@google/genai` SDK. The default model is `gemini-3.5-flash`. The model can be overridden through `GEMINI_MODEL`.
 
 The provider is configured using:
 

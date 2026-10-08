@@ -119,7 +119,7 @@ unique pairwise comparisons, subject to configured resource limits.
 
 CodeAudit can use an external AI-analysis service when configured.
 
-The current V1 implementation uses Google Gemini through `@google/genai`, behind an `AIAnalysisProvider` abstraction and `AIAnalysisService`. The default model is `gemini-3-flash-preview`.
+The current V1 implementation uses Google Gemini through `@google/genai`, behind an `AIAnalysisProvider` abstraction and `AIAnalysisService`. The default model is `gemini-3.5-flash`.
 
 Configuration is environment-based:
 

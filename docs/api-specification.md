@@ -383,7 +383,7 @@ The normalized result model is:
 - `disclaimer` — mandatory limitation statement;
 - `error` — optional controlled failure description.
 
-The current Gemini provider uses `gemini-3-flash-preview` by default. `GEMINI_MODEL` may override the model. `GEMINI_API_KEY` configures the provider credential, and `GEMINI_TIMEOUT_MS` controls the request timeout with a 15-second default.
+The current Gemini provider uses `gemini-3.5-flash` by default. `GEMINI_MODEL` may override the model. `GEMINI_API_KEY` configures the provider credential, and `GEMINI_TIMEOUT_MS` controls the request timeout with a 15-second default.
 
 The provider requests structured JSON and validates the returned indicator, confidence, and observations before exposing them through the API.
 

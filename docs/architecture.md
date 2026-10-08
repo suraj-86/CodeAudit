@@ -203,7 +203,7 @@ Provider JSON
 Validated / Normalized AIAnalysisResult
 ```
 
-The current V1 implementation provides `GeminiAnalysisProvider` through the `@google/genai` SDK. The default model is `gemini-3-flash-preview`, while `GEMINI_MODEL` can override the model without changing the provider class.
+The current V1 implementation provides `GeminiAnalysisProvider` through the `@google/genai` SDK. The default model is `gemini-3.5-flash`, while `GEMINI_MODEL` can override the model without changing the provider class.
 
 The provider is configured through environment variables rather than hard-coded secrets:
 

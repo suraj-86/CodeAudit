@@ -233,7 +233,7 @@ Phase 8 establishes the backend AI-analysis subsystem with:
 - `AIAnalysisService` delegation layer;
 - `GeminiAnalysisProvider`;
 - Google Gemini API integration through `@google/genai`;
-- default model `gemini-3-flash-preview`;
+- default model `gemini-3.5-flash`;
 - optional `GEMINI_MODEL` override;
 - `GEMINI_API_KEY` environment configuration;
 - configurable `GEMINI_TIMEOUT_MS` with a 15-second default;
