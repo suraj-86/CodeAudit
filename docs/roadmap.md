@@ -836,9 +836,7 @@ Everything below was verified directly — not assumed — in the environment th
 
 ### What's left
 
-Two things only the project owner can verify, since they require either a Docker daemon or real hosting credentials that aren't available in the environment this work was done in:
-
-1. **A real Python execution run against Docker.** Build the image (`docker build -t codeaudit/python server/runtime/python`), run the server locally with Docker available, and submit a Python file with a test case through `/check`. The *graceful-failure* path (no Docker) is already confirmed; what's unconfirmed is the actual happy path.
+1. **A real Python execution run against Docker, rebuilt with the fixed image.** The project owner's first real Docker run against the previously-shipped image surfaced a genuine bug — every execution failed with `runner: expected source code argument`, traced to the Dockerfile's `ENTRYPOINT` doubling up with the command `docker-worker.ts` already supplies (Decision 053). The image no longer sets an `ENTRYPOINT`; this was verified by simulating Docker's exact argument-passing behavior and running `runner.py` directly (correct output for both a plain-argument case and a stdin/JSON case matching the project owner's own test), but **not yet against a real `docker build` + `docker run`**, since no Docker daemon is available in this environment either. The project owner needs to rebuild the image (`docker build -t codeaudit/python server/runtime/python`) and re-run a `/check` with test cases to confirm the fix holds end-to-end.
 2. **An actual deployment**, per the README's new Deployment section (Render for the backend, Vercel for the frontend), followed by the demonstration checklist run against the live URLs rather than `localhost`.
 
 Exit condition:
