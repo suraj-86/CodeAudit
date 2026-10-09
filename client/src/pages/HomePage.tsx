@@ -28,6 +28,27 @@ export function HomePage() {
         </div>
       </section>
 
+      <div className="grid gap-4 sm:grid-cols-3">
+        <ModeCard
+          to="/check"
+          accent="bg-violet"
+          title="Check two files"
+          description="Compare one submission against a reference: exact match, structure, behaviour."
+        />
+        <ModeCard
+          to="/batch"
+          accent="bg-sky"
+          title="Check a class set"
+          description="Upload a whole batch of submissions (or a .zip of them) plus one reference."
+        />
+        <ModeCard
+          to="/ai-analysis"
+          accent="bg-coral"
+          title="AI analysis"
+          description="Scan one file, or a whole project .zip, for AI-style patterns — file by file and at a glance."
+        />
+      </div>
+
       <RenameTestDemo />
 
       <Section
@@ -60,5 +81,30 @@ export function HomePage() {
         </dl>
       </Section>
     </div>
+  )
+}
+
+function ModeCard({
+  to,
+  accent,
+  title,
+  description,
+}: {
+  to: string
+  accent: string
+  title: string
+  description: string
+}) {
+  return (
+    <Link
+      to={to}
+      className="group block border-2 border-ink bg-sheet p-5 shadow-block-sm transition-transform duration-100 hover:-translate-y-0.5 hover:shadow-block"
+    >
+      <span aria-hidden="true" className={`mb-3 block h-2 w-10 ${accent}`} />
+      <p className="font-display text-lg font-bold">
+        {title} <span className="inline-block transition-transform duration-100 group-hover:translate-x-1">→</span>
+      </p>
+      <p className="mt-1 text-[0.92rem] text-ink-soft">{description}</p>
+    </Link>
   )
 }

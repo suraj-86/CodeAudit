@@ -1,7 +1,13 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { runAiAnalysis, ApiError, isAbortError, type AIAnalysisResult } from '../api'
 import { useLanguages } from '../hooks/useLanguages'
-import { allExtensions, keyForFile, languageForExtension, type AiBatchItem } from '../lib/ai-batch'
+import {
+  allExtensions,
+  computeProjectOverview,
+  keyForFile,
+  languageForExtension,
+  type AiBatchItem,
+} from '../lib/ai-batch'
 import { extractFilesFromZip, extensionOf } from '../lib/zip'
 import { formatBytes } from '../lib/format'
 import { Section } from '../components/Section'
@@ -9,6 +15,7 @@ import { DropZone } from '../components/DropZone'
 import { Button } from '../components/ui/Button'
 import { Alert } from '../components/ui/Alert'
 import { AIResultView } from '../components/AIResultView'
+import { AiProjectOverviewCard } from '../components/AiProjectOverviewCard'
 
 const AI_CAPABLE = 'ai'
 
@@ -124,6 +131,9 @@ export function AiAnalysisPage() {
   const errorCount = items.filter((item) => item.status === 'error').length
   const canRun = items.length > 0 && !running && !extracting
 
+  const overview = useMemo(() => computeProjectOverview(items), [items])
+  const showOverview = items.length > 1 && doneCount + errorCount > 0
+
   if (!limits) return null
 
   return (
@@ -135,6 +145,8 @@ export function AiAnalysisPage() {
           AI-assisted analysis on every file inside. This is an independent signal, not a verdict.
         </p>
       </div>
+
+      {showOverview && <AiProjectOverviewCard overview={overview} onSelectFile={setSelectedId} />}
 
       <Section title="Files">
         <div className="space-y-4">

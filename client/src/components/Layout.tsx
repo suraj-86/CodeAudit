@@ -107,7 +107,7 @@ function SiteFooter() {
           ))}
         </div>
         <p className="text-[0.75rem] font-semibold tracking-[0.2em] text-white/50 uppercase">
-          AST Engine · Built with love
+          CodeAudit · AST-Powered Code Analysis
         </p>
       </div>
     </footer>
