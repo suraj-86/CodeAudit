@@ -46,7 +46,7 @@ npm run dev              # starts the app on http://localhost:5173 (or similar)
 
 The dev server proxies `/api` requests to `http://localhost:4000` automatically (see `client/vite.config.ts`) — no extra configuration needed for local development.
 
-Open the URL Vite prints; you should see the CodeAudit home page with a green "Server online" badge confirming it can reach the backend.
+Open the URL Vite prints; you should see the CodeAudit home page. If the backend isn't reachable, the pages that call it (`/check`, `/batch`, `/ai-analysis`) will show a "Couldn't reach the server" error when you try to run a check — that's the signal to confirm the backend is running on port 4000.
 
 ### 3. Run the tests
 
@@ -292,17 +292,19 @@ CodeAudit is two independently deployable pieces with no shared infrastructure b
 ### After deploying both
 
 1. Go back to the backend's environment variables and set `CORS_ALLOWED_ORIGINS` to the real Vercel URL from step 3 above, then redeploy the backend so the restriction takes effect.
-2. Open the deployed frontend URL and confirm the "Server online" badge is green — if it isn't, it's almost always either `VITE_API_BASE_URL` being wrong/missing, or `CORS_ALLOWED_ORIGINS` not yet matching the frontend's real origin.
+2. Open the deployed frontend URL and run any check (e.g. `/check` with a small file). If it fails with "Couldn't reach the server" or a CORS error in the browser console, it's almost always either `VITE_API_BASE_URL` being wrong/missing, or `CORS_ALLOWED_ORIGINS` not yet matching the frontend's real origin.
 3. Run through the demonstration checklist below against the live deployment, not just `localhost`.
 
 ### Demonstration checklist
 
 A quick pass to confirm a deployment (or a local run) is actually working end-to-end:
 
-- [ ] Home page loads, server status badge is green
+- [ ] Home page loads
 - [ ] `/check`: upload a C++ file with a reference → see exact-match and structural-similarity results, plus the side-by-side code diff
 - [ ] `/check`: a Python file with a test case → see a correctness result (`Execution Unavailable` is a valid, correct result if Docker isn't set up — see Known Limitations)
 - [ ] `/batch`: 3+ C++ submissions plus a reference → see the comparison matrix, flagged pairs, and reference comparisons
+- [ ] `/batch`: upload a `.zip` of a class set (one subfolder per student) into the submissions dropzone → confirm every student's file is extracted and listed
+- [ ] `/ai-analysis`: upload a project `.zip` → confirm every supported source file inside is extracted, listed, and analyzed one by one
 - [ ] Download a PDF report from a completed check
 - [ ] Submit an invalid file (wrong extension) → confirm the submit button stays disabled with a clear inline reason
 - [ ] If `GEMINI_API_KEY` is set: confirm AI analysis returns a real result, not "unavailable"

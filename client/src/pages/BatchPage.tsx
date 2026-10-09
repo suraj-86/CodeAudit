@@ -7,6 +7,7 @@ import { useTask } from '../hooks/useTask'
 import { duplicateGroups, fileProblem } from '../lib/files'
 import { formatPercent } from '../lib/format'
 import { nameOf, resolveSelection, type Selection } from '../lib/batch-selection'
+import { extractFilesFromZip, extensionOf } from '../lib/zip'
 import { Section } from '../components/Section'
 import { LanguagePicker } from '../components/LanguagePicker'
 import { DropZone } from '../components/DropZone'
@@ -36,6 +37,8 @@ export function BatchPage() {
   const [submissions, setSubmissions] = useState<File[]>([])
   const [reference, setReference] = useState<File | null>(null)
   const [selection, setSelection] = useState<Selection | null>(null)
+  const [extracting, setExtracting] = useState(false)
+  const [zipNotice, setZipNotice] = useState<string | null>(null)
 
   const [submittedFiles, setSubmittedFiles] = useState<{
     submissions: File[]
@@ -57,7 +60,35 @@ export function BatchPage() {
     language && limits && submissions.length >= 2 && reference && !busy && allFilesValid,
   )
 
-  const addSubmissions = (files: File[]) => setSubmissions((current) => [...current, ...files])
+  const addSubmissions = async (files: File[]) => {
+    if (!language) return
+    setZipNotice(null)
+
+    const zips = files.filter((file) => file.name.toLowerCase().endsWith('.zip'))
+    const plain = files.filter((file) => !file.name.toLowerCase().endsWith('.zip'))
+
+    let fromZips: File[] = []
+    if (zips.length > 0) {
+      setExtracting(true)
+      try {
+        for (const zip of zips) {
+          const extracted = await extractFilesFromZip(zip, (path) =>
+            language.extensions.includes(extensionOf(path)),
+          )
+          if (extracted.length === 0) {
+            setZipNotice(
+              `No ${language.label} files were found inside "${zip.name}". Each submission's folder should contain one ${language.label} file.`,
+            )
+          }
+          fromZips = [...fromZips, ...extracted]
+        }
+      } finally {
+        setExtracting(false)
+      }
+    }
+
+    setSubmissions((current) => [...current, ...plain, ...fromZips])
+  }
 
   const submit = () => {
     if (!language || !reference) return
@@ -72,6 +103,7 @@ export function BatchPage() {
     setReference(null)
     setSelection(null)
     setSubmittedFiles(null)
+    setZipNotice(null)
   }
 
   const fileById = useMemo(() => {
@@ -227,12 +259,18 @@ export function BatchPage() {
                 <DropZone
                   id="submissions"
                   label="Drop submissions here, or click to choose"
-                  hint={`Up to ${limits.maxBatchSubmissions} ${language.label} files`}
-                  accept={language.extensions}
+                  hint={`Up to ${limits.maxBatchSubmissions} ${language.label} files — or a .zip of the whole class set, one folder per student`}
+                  accept={[...language.extensions, '.zip']}
                   multiple
-                  disabled={busy}
-                  onFiles={addSubmissions}
+                  disabled={busy || extracting}
+                  onFiles={(files) => void addSubmissions(files)}
                 />
+                {extracting && <p className="text-[0.9rem] text-ink-soft">Reading zip…</p>}
+                {zipNotice && (
+                  <Alert tone="warning" title="Heads up">
+                    {zipNotice}
+                  </Alert>
+                )}
               </div>
             </div>
 

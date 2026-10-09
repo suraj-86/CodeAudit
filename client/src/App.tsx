@@ -4,6 +4,7 @@ import { LanguagesProvider } from './components/LanguagesProvider'
 import { HomePage } from './pages/HomePage'
 import { WorkflowPage } from './pages/WorkflowPage'
 import { BatchPage } from './pages/BatchPage'
+import { AiAnalysisPage } from './pages/AiAnalysisPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="check" element={<WorkflowPage />} />
           <Route path="batch" element={<BatchPage />} />
+          <Route path="ai-analysis" element={<AiAnalysisPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

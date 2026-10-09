@@ -1,5 +1,6 @@
 import { requestJson, requestBlob } from './client'
 import type {
+  AIAnalysisResult,
   BatchInput,
   BatchResult,
   HealthResponse,
@@ -66,6 +67,18 @@ export function runBatch(
   return requestJson<BatchResult>('/analyze/batch', {
     method: 'POST',
     body: buildBatchForm(input),
+    signal: signal ?? null,
+  })
+}
+
+export function runAiAnalysis(
+  input: { language: string; source: string },
+  signal?: AbortSignal,
+): Promise<AIAnalysisResult> {
+  return requestJson<AIAnalysisResult>('/analyze/ai', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
     signal: signal ?? null,
   })
 }
