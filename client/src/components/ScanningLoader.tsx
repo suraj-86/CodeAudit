@@ -4,8 +4,8 @@ interface ScanningLoaderProps {
 
 export function ScanningLoader({ label }: ScanningLoaderProps) {
   return (
-    <div role="status" className="flex items-center gap-4 border-2 border-ink bg-white px-5 py-4">
-      <div className="relative h-12 w-10 shrink-0 overflow-hidden border-2 border-ink bg-paper">
+    <div role="status" className="flex items-center gap-4 rounded-2xl border-2 border-ink bg-white px-5 py-4">
+      <div className="relative h-12 w-10 shrink-0 overflow-hidden rounded-lg border-2 border-ink bg-paper">
         <div className="absolute inset-x-0 top-1.5 h-0.5 bg-ink/25" />
         <div className="absolute inset-x-0 top-3.5 h-0.5 bg-ink/25" />
         <div className="absolute inset-x-0 top-5.5 h-0.5 bg-ink/25" />

@@ -65,7 +65,7 @@ export function AiProjectOverviewCard({
       <div className="space-y-5">
         <div className="flex flex-wrap items-center gap-3">
           {overallLabel && overallLabel !== 'unavailable' && (
-            <span className={`border-2 border-ink px-3 py-1 font-semibold capitalize ${LABEL_TONE[overallLabel]}`}>
+            <span className={`rounded-full border-2 border-ink px-3 py-1 font-semibold capitalize ${LABEL_TONE[overallLabel]}`}>
               {overallLabel} risk
             </span>
           )}
@@ -75,7 +75,7 @@ export function AiProjectOverviewCard({
         </div>
 
         {unavailableReason && unavailable === analyzed && analyzed > 0 && (
-          <div className="border-2 border-dashed border-ink/40 px-4 py-3 text-[0.9rem] text-ink-soft">
+          <div className="rounded-xl border-2 border-dashed border-ink/40 px-4 py-3 text-[0.9rem] text-ink-soft">
             Every file came back unavailable: {unavailableReason}
           </div>
         )}
@@ -102,7 +102,7 @@ export function AiProjectOverviewCard({
             <div
               role="img"
               aria-label={`${labelCounts.high} high, ${labelCounts.medium} medium, ${labelCounts.low} low, ${unavailable} unavailable`}
-              className="flex h-5 w-full overflow-hidden border-2 border-ink"
+              className="flex h-5 w-full overflow-hidden rounded-full border-2 border-ink"
             >
               {segments
                 .filter((s) => s.count > 0)
@@ -129,9 +129,9 @@ export function AiProjectOverviewCard({
         {available > 0 && avgIndicator !== null && (
           <div>
             <p className="mb-1.5 font-semibold">Average AI indicator</p>
-            <div className="h-3 w-full border-2 border-ink bg-white">
+            <div className="h-3 w-full overflow-hidden rounded-full border-2 border-ink bg-white">
               <div
-                className="h-full bg-violet"
+                className="h-full rounded-full bg-violet"
                 style={{ width: `${Math.round(avgIndicator * 100)}%` }}
               />
             </div>

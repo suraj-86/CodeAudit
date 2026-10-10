@@ -21,7 +21,7 @@ export function Alert({ tone, title, children, actions }: AlertProps) {
   return (
     <div
       role={tone === 'error' ? 'alert' : 'status'}
-      className="flex overflow-hidden border-2 border-ink bg-white"
+      className="flex overflow-hidden rounded-xl border-2 border-ink bg-white"
     >
       <div className={`w-3 shrink-0 ${stripe[tone]}`} aria-hidden="true" />
       <div className="flex-1 space-y-1 px-4 py-3">

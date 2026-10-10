@@ -30,7 +30,7 @@ export function RenameTestDemo() {
   const identical = changedCount === 0
 
   return (
-    <section className="border-2 border-ink bg-sheet p-5 shadow-block sm:p-7">
+    <section className="rounded-2xl border-2 border-ink bg-sheet p-5 shadow-block sm:p-7">
       <h2 className="font-display text-xl font-bold">Try to fool the structure check</h2>
       <p className="mt-1 max-w-prose text-ink-soft">
         Flip these on. Most of them change how the code looks but not its shape — watch the tiles below
@@ -51,7 +51,7 @@ export function RenameTestDemo() {
         </div>
 
         <div className="space-y-4">
-          <pre className="overflow-x-auto border-2 border-ink bg-ink p-3 font-mono text-[0.85rem] leading-relaxed text-white">
+          <pre className="overflow-x-auto rounded-xl border-2 border-ink bg-ink p-3 font-mono text-[0.85rem] leading-relaxed text-white">
             {parts.map((part, index) => (
               <span key={index} className={part.changed ? 'bg-marigold text-ink' : ''}>
                 {part.text}
@@ -70,7 +70,7 @@ export function RenameTestDemo() {
           </div>
 
           <p
-            className={`border-2 border-ink px-3 py-2 font-semibold ${
+            className={`rounded-xl border-2 border-ink px-3 py-2 font-semibold ${
               identical ? 'bg-mint/40' : 'bg-coral/40'
             }`}
           >

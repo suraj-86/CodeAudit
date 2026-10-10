@@ -15,7 +15,7 @@ export function TestCaseEditor({ cases, onChange, disabled }: TestCaseEditorProp
   return (
     <div className="space-y-3">
       {cases.map((testCase, index) => (
-        <div key={testCase.key} className="grid gap-2 border-2 border-ink bg-white p-3 sm:grid-cols-2">
+        <div key={testCase.key} className="grid gap-2 rounded-xl border-2 border-ink bg-white p-3 sm:grid-cols-2">
           <label className="text-[0.85rem] font-semibold">
             Input {index + 1}
             <textarea
@@ -23,7 +23,7 @@ export function TestCaseEditor({ cases, onChange, disabled }: TestCaseEditorProp
               rows={2}
               value={testCase.input}
               onChange={(event) => update(testCase.key, { input: event.target.value })}
-              className="mt-1 w-full resize-y border-2 border-ink/60 p-2 font-mono text-[0.88rem] disabled:opacity-45"
+              className="mt-1 w-full resize-y rounded-lg border-2 border-ink/60 p-2 font-mono text-[0.88rem] disabled:opacity-45"
             />
           </label>
           <label className="text-[0.85rem] font-semibold">
@@ -33,7 +33,7 @@ export function TestCaseEditor({ cases, onChange, disabled }: TestCaseEditorProp
               rows={2}
               value={testCase.expectedOutput}
               onChange={(event) => update(testCase.key, { expectedOutput: event.target.value })}
-              className="mt-1 w-full resize-y border-2 border-ink/60 p-2 font-mono text-[0.88rem] disabled:opacity-45"
+              className="mt-1 w-full resize-y rounded-lg border-2 border-ink/60 p-2 font-mono text-[0.88rem] disabled:opacity-45"
             />
           </label>
           <div className="sm:col-span-2">

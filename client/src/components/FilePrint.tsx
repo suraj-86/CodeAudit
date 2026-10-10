@@ -36,7 +36,7 @@ export function FilePrint({ hash, size = 64, label, className = '' }: FilePrintP
       height={size}
       role="img"
       aria-label={label ?? (tiles ? 'File fingerprint pattern' : 'Computing file fingerprint')}
-      className={`block shrink-0 border-2 border-ink bg-white ${className}`}
+      className={`block shrink-0 rounded-lg border-2 border-ink bg-white ${className}`}
     >
       {tiles
         ? tiles.map((tile, i) => (

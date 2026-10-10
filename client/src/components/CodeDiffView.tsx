@@ -10,7 +10,7 @@ type CodeDiffViewProps = ComponentProps<typeof CodeDiffViewImpl>
 function CodeDiffViewFallback({ height = 360 }: { height?: number }) {
   return (
     <div
-      className="flex items-center justify-center border-2 border-ink bg-white text-ink-soft"
+      className="flex items-center justify-center rounded-xl border-2 border-ink bg-white text-ink-soft"
       style={{ height }}
     >
       Loading the code viewer…

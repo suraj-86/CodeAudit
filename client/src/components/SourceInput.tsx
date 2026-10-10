@@ -41,7 +41,7 @@ export function SourceInput({
           {label}
           {optional && <span className="ml-1 font-normal text-ink-soft">(optional)</span>}
         </span>
-        <div className="flex border-2 border-ink text-[0.85rem] font-semibold">
+        <div className="flex overflow-hidden rounded-full border-2 border-ink text-[0.85rem] font-semibold">
           {(['upload', 'paste'] as const).map((mode) => (
             <button
               key={mode}
@@ -88,7 +88,7 @@ export function SourceInput({
             placeholder={`Paste ${language.label} code here…`}
             value={draft.text}
             onChange={(event) => onChange({ ...draft, text: event.target.value })}
-            className="w-full resize-y border-2 border-ink bg-white p-3 font-mono text-[0.9rem] disabled:opacity-45"
+            className="w-full resize-y rounded-xl border-2 border-ink bg-white p-3 font-mono text-[0.9rem] disabled:opacity-45"
           />
           <div className="flex items-center justify-between text-[0.85rem] text-ink-soft">
             <span>{previewFile ? `${previewFile.size} bytes` : 'Nothing pasted yet'}</span>

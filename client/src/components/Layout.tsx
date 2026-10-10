@@ -20,7 +20,7 @@ export function Layout() {
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <NavLink to="/" className="flex items-center gap-2 font-display text-lg font-bold">
             <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
-              <rect width="32" height="32" rx="7" fill="#14163A" />
+              <rect width="32" height="32" rx="10" fill="#14163A" />
               <rect x="5" y="5" width="10" height="10" fill="#5A3CF0" />
               <circle cx="22" cy="10" r="5" fill="#FFC02E" />
               <path d="M5 27V17h10a0 0 0 0 1 0 0v10z" fill="#FF5A6E" />
@@ -36,7 +36,7 @@ export function Layout() {
                 to={link.to}
                 end={link.end}
                 className={({ isActive }) =>
-                  `border-2 border-ink px-3 py-1 text-[0.92rem] font-semibold transition-colors duration-100 ${
+                  `rounded-full border-2 border-ink px-3.5 py-1 text-[0.92rem] font-semibold transition-colors duration-100 ${
                     isActive ? 'bg-ink text-white' : 'bg-white hover:bg-marigold/50'
                   }`
                 }

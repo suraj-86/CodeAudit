@@ -102,7 +102,7 @@ export function WorkflowResultView({
           ))}
         </ul>
         {exactMatchNote && (
-          <p className="mt-3 border-2 border-ink bg-marigold/30 px-3 py-2 font-semibold">
+          <p className="mt-3 rounded-xl border-2 border-ink bg-marigold/30 px-3 py-2 font-semibold">
             {exactMatchNote.description}
           </p>
         )}

@@ -21,7 +21,7 @@ export function ExecutionResultView({ title, result }: ExecutionResultViewProps)
       <div className="flex items-baseline justify-between gap-2">
         <h4 className="font-semibold">{title}</h4>
         <span
-          className={`border-2 px-2 py-0.5 text-[0.85rem] font-semibold ${STATUS_TONE[result.status]}`}
+          className={`rounded-full border-2 px-2.5 py-0.5 text-[0.85rem] font-semibold ${STATUS_TONE[result.status]}`}
         >
           {result.status}
         </span>
@@ -34,7 +34,7 @@ export function ExecutionResultView({ title, result }: ExecutionResultViewProps)
           {result.testCases.map((testCase, index) => (
             <li
               key={testCase.testCaseId}
-              className={`border-2 px-3 py-1.5 text-[0.9rem] ${STATUS_TONE[testCase.status]}`}
+              className={`rounded-lg border-2 px-3 py-1.5 text-[0.9rem] ${STATUS_TONE[testCase.status]}`}
             >
               <span className="font-semibold">
                 Case {index + 1}: {testCase.status}

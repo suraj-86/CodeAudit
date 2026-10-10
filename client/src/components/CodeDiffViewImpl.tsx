@@ -92,7 +92,7 @@ export function CodeDiffView({
   }, [leftText, rightText, language])
 
   return (
-    <div className="border-2 border-ink">
+    <div className="overflow-hidden rounded-xl border-2 border-ink">
       <div className="grid grid-cols-2 border-b-2 border-ink text-[0.85rem] font-semibold">
         <span className="truncate border-r-2 border-ink bg-coral/20 px-3 py-1.5" title={leftLabel}>
           {leftLabel}

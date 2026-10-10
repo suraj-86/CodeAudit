@@ -395,8 +395,8 @@ function AiZipGroupRow({
   const finished = summary.done + summary.error >= summary.total
 
   return (
-    <div className="border-2 border-ink bg-white">
-      <div className="flex items-center gap-3 p-2 pr-3">
+    <div className="rounded-2xl border-2 border-ink bg-white">
+      <div className="flex items-center gap-3 p-2.5 pr-3">
         <button
           type="button"
           onClick={onToggle}
@@ -409,7 +409,7 @@ function AiZipGroupRow({
           >
             ▸
           </span>
-          <span aria-hidden="true" className="shrink-0 border-2 border-ink bg-marigold/40 px-1.5 py-0.5 text-[0.75rem] font-bold">
+          <span aria-hidden="true" className="shrink-0 rounded-full border-2 border-ink bg-marigold/40 px-2 py-0.5 text-[0.75rem] font-bold">
             ZIP
           </span>
           <span className="min-w-0 flex-1">
@@ -429,7 +429,7 @@ function AiZipGroupRow({
             type="button"
             onClick={onRemoveGroup}
             aria-label={`Remove all files from ${group.zipName}`}
-            className="grid h-8 w-8 shrink-0 place-items-center border-2 border-ink bg-white text-lg leading-none hover:bg-coral"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-ink bg-white text-lg leading-none hover:bg-coral"
           >
             ×
           </button>
@@ -467,7 +467,7 @@ function AiFileRow({
 }) {
   return (
     <div
-      className={`flex items-center gap-3 border-2 bg-white p-2 pr-3 ${
+      className={`flex items-center gap-3 rounded-xl border-2 bg-white p-2 pr-3 ${
         selected ? 'border-violet' : 'border-ink'
       }`}
     >
@@ -494,7 +494,7 @@ function AiFileRow({
           type="button"
           onClick={onRemove}
           aria-label={`Remove ${item.file.name}`}
-          className="grid h-8 w-8 shrink-0 place-items-center border-2 border-ink bg-white text-lg leading-none hover:bg-coral"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-ink bg-white text-lg leading-none hover:bg-coral"
         >
           ×
         </button>

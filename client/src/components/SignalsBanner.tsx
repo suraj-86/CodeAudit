@@ -7,7 +7,7 @@ const POINTS = [
 
 export function SignalsBanner() {
   return (
-    <div className="border-2 border-ink bg-ink px-4 py-3 text-white sm:px-5">
+    <div className="rounded-2xl border-2 border-ink bg-ink px-4 py-3.5 text-white sm:px-5">
       <p className="font-display text-sm font-bold tracking-wide text-marigold uppercase">
         Read each signal on its own
       </p>

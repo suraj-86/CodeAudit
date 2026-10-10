@@ -11,7 +11,7 @@ const LABEL_TONE = {
 export function AIResultView({ result }: { result: AIAnalysisResult }) {
   if (!result.available) {
     return (
-      <div className="border-2 border-dashed border-ink/40 px-4 py-3 text-[0.92rem] text-ink-soft">
+      <div className="rounded-xl border-2 border-dashed border-ink/40 px-4 py-3 text-[0.92rem] text-ink-soft">
         AI-assisted analysis wasn't available for this run
         {result.error ? `: ${result.error}` : '.'}
       </div>
@@ -21,7 +21,7 @@ export function AIResultView({ result }: { result: AIAnalysisResult }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-3">
-        <span className={`border-2 border-ink px-3 py-1 font-semibold capitalize ${LABEL_TONE[result.label]}`}>
+        <span className={`rounded-full border-2 border-ink px-3 py-1 font-semibold capitalize ${LABEL_TONE[result.label]}`}>
           {result.label}
         </span>
         {result.indicator !== undefined && (
@@ -34,7 +34,7 @@ export function AIResultView({ result }: { result: AIAnalysisResult }) {
       {result.observations.length > 0 && (
         <ul className="space-y-1.5">
           {result.observations.map((observation, index) => (
-            <li key={index} className="border-l-4 border-sky bg-white py-1 pl-3 text-[0.92rem]">
+            <li key={index} className="rounded-r-lg border-l-4 border-sky bg-white py-1 pl-3 text-[0.92rem]">
               <span className="font-semibold">{observation.category}: </span>
               {observation.description}
             </li>

@@ -14,7 +14,7 @@ interface FileChipProps {
 export function FileChip({ file, hash, problem, twins = [], onRemove, disabled }: FileChipProps) {
   return (
     <div
-      className={`flex items-center gap-3 border-2 bg-white p-2 pr-3 ${
+      className={`flex items-center gap-3 rounded-xl border-2 bg-white p-2 pr-3 ${
         problem ? 'border-coral' : 'border-ink'
       }`}
     >
@@ -29,7 +29,7 @@ export function FileChip({ file, hash, problem, twins = [], onRemove, disabled }
         </p>
         {problem && <p className="text-[0.9rem] font-medium text-[#c2263f]">{problem}</p>}
         {twins.length > 0 && (
-          <p className="mt-0.5 inline-block bg-marigold px-1.5 text-[0.85rem] font-semibold">
+          <p className="mt-0.5 inline-block rounded-full bg-marigold px-2 text-[0.85rem] font-semibold">
             Same fingerprint as {twins.join(', ')}
           </p>
         )}
@@ -40,7 +40,7 @@ export function FileChip({ file, hash, problem, twins = [], onRemove, disabled }
           onClick={onRemove}
           disabled={disabled}
           aria-label={`Remove ${file.name}`}
-          className="grid h-8 w-8 shrink-0 place-items-center border-2 border-ink bg-white text-lg leading-none not-disabled:hover:bg-coral disabled:opacity-45"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-ink bg-white text-lg leading-none not-disabled:hover:bg-coral disabled:opacity-45"
         >
           ×
         </button>

@@ -6,8 +6,8 @@ import { buttonClasses } from '../components/ui/button-styles'
 export function HomePage() {
   return (
     <div className="space-y-10">
-      <section className="border-2 border-ink bg-sheet p-6 shadow-block sm:p-10">
-        <p className="mb-2 inline-block border-2 border-ink bg-marigold px-2 py-0.5 font-mono text-[0.8rem] font-bold">
+      <section className="rounded-2xl border-2 border-ink bg-sheet p-6 shadow-block sm:p-10">
+        <p className="mb-2 inline-block rounded-full border-2 border-ink bg-marigold px-3 py-0.5 font-mono text-[0.8rem] font-bold">
           exact match · structure · behaviour · AI signal
         </p>
         <h1 className="font-display text-3xl leading-tight font-bold sm:text-4xl">
@@ -98,9 +98,14 @@ function ModeCard({
   return (
     <Link
       to={to}
-      className="group block border-2 border-ink bg-sheet p-5 shadow-block-sm transition-transform duration-100 hover:-translate-y-0.5 hover:shadow-block"
+      className="group block rounded-2xl border-2 border-ink bg-sheet p-5 shadow-block-sm transition-transform duration-100 hover:-translate-y-0.5 hover:shadow-block"
     >
-      <span aria-hidden="true" className={`mb-3 block h-2 w-10 ${accent}`} />
+      <span
+        aria-hidden="true"
+        className={`mb-4 grid h-10 w-10 place-items-center rounded-full border-2 border-ink ${accent}`}
+      >
+        <span className="h-2.5 w-2.5 rounded-full bg-white/90" />
+      </span>
       <p className="font-display text-lg font-bold">
         {title} <span className="inline-block transition-transform duration-100 group-hover:translate-x-1">→</span>
       </p>
