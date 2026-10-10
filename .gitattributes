@@ -1,0 +1,17 @@
+# Normalize line endings to LF in the repository regardless of the
+# committer's OS, and let git convert to the platform's native line
+# ending on checkout. This prevents "your local changes would be
+# overwritten" errors on Windows caused by CRLF/LF mismatches that
+# aren't real content differences.
+* text=auto eol=lf
+
+# Binary files - never touch line endings
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
