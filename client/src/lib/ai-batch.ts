@@ -1,9 +1,6 @@
 import type { LanguageInfo } from '../api'
 
-/** Where an item came from: a standalone file picked/dropped directly, or
- *  one of N files extracted from an uploaded project zip. Grouping by
- *  `source` is what lets the file list collapse a 200-file zip into one
- *  "project.zip — 200 files" row instead of flooding the page. */
+
 export type AiItemSource =
   | { kind: 'file' }
   | { kind: 'zip'; zipId: string; zipName: string }
@@ -18,7 +15,6 @@ export interface AiBatchItem {
   source: AiItemSource
 }
 
-/** First language (in list order) whose extensions include `ext`. */
 export function languageForExtension(languages: LanguageInfo[], ext: string): LanguageInfo | undefined {
   return languages.find((language) => language.extensions.includes(ext))
 }
@@ -36,9 +32,6 @@ export interface AiZipGroup {
   zipName: string
   items: AiBatchItem[]
 }
-
-/** Splits items into their zip groups (in first-seen order) plus whatever
- *  standalone files were added outside any zip. */
 export function groupItemsBySource(items: AiBatchItem[]): {
   zipGroups: AiZipGroup[]
   looseItems: AiBatchItem[]
@@ -95,10 +88,6 @@ export interface AiProjectOverview {
 }
 
 const LABEL_SEVERITY: Record<AiRiskLabel, number> = { low: 0, medium: 1, high: 2 }
-
-/** Rolls up every finished item into a single project-level verdict: the most
- *  severe label present wins (one high-risk file is worth flagging even if
- *  the other 99 are clean), same logic a human skimming the list would use. */
 export function computeProjectOverview(items: AiBatchItem[]): AiProjectOverview {
   const labelCounts: Record<AiRiskLabel, number> = { low: 0, medium: 0, high: 0 }
   const observationCounts = new Map<string, number>()

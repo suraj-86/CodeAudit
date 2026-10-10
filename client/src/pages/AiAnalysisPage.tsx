@@ -21,9 +21,6 @@ import { AIResultView } from '../components/AIResultView'
 import { AiProjectOverviewCard } from '../components/AiProjectOverviewCard'
 
 const AI_CAPABLE = 'ai'
-// The AI route allows 10 requests/minute server-side (see server/src/config/rate-limit.ts).
-// A project with more files than that will hit a 429 partway through; rather than
-// giving up, the run loop waits out the window and resumes automatically.
 const AI_REQUESTS_PER_MINUTE = 10
 const MAX_RATE_LIMIT_RETRIES = 30
 
@@ -70,7 +67,6 @@ export function AiAnalysisPage() {
             for (const extractedFile of extracted.files) {
               toAdd.push({ file: extractedFile, source: { kind: 'zip', zipId, zipName: file.name } })
             }
-            // A freshly-added zip starts expanded only if it's small enough to skim at a glance.
             if (extracted.files.length <= 8) {
               setExpandedZips((current) => new Set(current).add(zipId))
             }

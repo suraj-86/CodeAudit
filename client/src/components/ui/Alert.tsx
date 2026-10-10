@@ -15,8 +15,6 @@ interface AlertProps {
   children?: ReactNode
   actions?: ReactNode
 }
-
-/** A left-striped note. Errors are announced immediately; the rest politely. */
 export function Alert({ tone, title, children, actions }: AlertProps) {
   return (
     <div

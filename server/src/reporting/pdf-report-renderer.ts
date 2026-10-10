@@ -10,11 +10,6 @@ import {
 import type { ReportRenderer } from "./report-renderer.js";
 import type { ReportResult } from "./report-result.js";
 
-/*
- * Brand palette, lifted directly from the frontend's design tokens
- * (client/src/index.css's `@theme` block) so the PDF report reads as
- * the same product as the web UI, not a generic document.
- */
 const COLOR = {
   ink: rgb(0x14 / 255, 0x16 / 255, 0x3a / 255),
   inkSoft: rgb(0x4b / 255, 0x4f / 255, 0x7a / 255),
@@ -29,12 +24,6 @@ const COLOR = {
   white: rgb(1, 1, 1),
 } as const;
 
-/*
- * Status → tone, matching client/src/components/ExecutionResultView.tsx,
- * AIResultView.tsx and BatchMatrix.tsx exactly, so "Passed" is mint here
- * the same way it's mint in the app, "suspicious" is coral in both
- * places, and so on.
- */
 const EXECUTION_TONE: Record<string, RGB> = {
   Passed: COLOR.mint,
   Failed: COLOR.coral,
@@ -62,17 +51,6 @@ interface Line {
   gapAfter: number;
 }
 
-/**
- * Builds a professionally laid-out CodeAudit PDF report.
- *
- * The previous implementation advanced the cursor by exactly one line
- * per drawn string, regardless of how many lines pdf-lib's `maxWidth`
- * option actually wrapped that string into — so any text longer than
- * about half a page width (an AI observation, the disclaimer, even the
- * footer) silently overlapped whatever was drawn next. This version
- * measures and wraps text itself, so the vertical cursor always
- * reflects exactly what was drawn.
- */
 export class PdfReportRenderer implements ReportRenderer {
   async render(report: ReportResult): Promise<Uint8Array> {
     const pdf = await PDFDocument.create();
@@ -136,7 +114,6 @@ export class PdfReportRenderer implements ReportRenderer {
       return lines;
     };
 
-    /** Draws left-aligned wrapped text, breaking across pages as needed. */
     const drawParagraph = (
       text: string,
       options: {
@@ -209,7 +186,6 @@ export class PdfReportRenderer implements ReportRenderer {
       y -= 30;
     };
 
-    /** A small rounded-looking pill with centered text (status/label). */
     const measurePill = (text: string, font: PDFFont, size: number) =>
       font.widthOfTextAtSize(text, size) + 16;
 
@@ -244,7 +220,6 @@ export class PdfReportRenderer implements ReportRenderer {
       return pillWidth;
     };
 
-    /** label: value, with the label in ink-soft and value in ink. */
     const drawField = (
       label: string,
       value: string,
@@ -288,7 +263,6 @@ export class PdfReportRenderer implements ReportRenderer {
       }
     };
 
-    /** A left-accented callout card (used for the summary box). */
     const drawCallout = (text: string, tone: RGB): void => {
       const size = 10.5;
       const lineHeight = size * 1.6;
@@ -334,7 +308,6 @@ export class PdfReportRenderer implements ReportRenderer {
       y = top - blockHeight - 14;
     };
 
-    /** A thin horizontal meter bar for a 0-1 ratio, with a threshold tick. */
     const drawMeter = (
       ratio: number,
       threshold: number | undefined,
@@ -390,10 +363,6 @@ export class PdfReportRenderer implements ReportRenderer {
       y = top - barHeight - 16;
     };
 
-    // ---------------------------------------------------------------
-    // Header
-    // ---------------------------------------------------------------
-
     page.drawText("CODEAUDIT", {
       x: PAGE_MARGIN,
       y: y - 14,
@@ -426,16 +395,9 @@ export class PdfReportRenderer implements ReportRenderer {
 
     drawDivider();
 
-    // ---------------------------------------------------------------
-    // Summary
-    // ---------------------------------------------------------------
 
     drawSectionHeading("Summary");
     drawCallout(report.summary, COLOR.violet);
-
-    // ---------------------------------------------------------------
-    // Analyzed files
-    // ---------------------------------------------------------------
 
     drawSectionHeading("Analyzed Files");
 
@@ -466,9 +428,6 @@ export class PdfReportRenderer implements ReportRenderer {
       y -= 10;
     }
 
-    // ---------------------------------------------------------------
-    // Correctness
-    // ---------------------------------------------------------------
 
     if (report.input.correctness) {
       const correctness = report.input.correctness;
@@ -518,9 +477,6 @@ export class PdfReportRenderer implements ReportRenderer {
       y -= 4;
     }
 
-    // ---------------------------------------------------------------
-    // Structural similarity
-    // ---------------------------------------------------------------
 
     if (report.input.similarity) {
       const similarity = report.input.similarity;
@@ -566,9 +522,6 @@ export class PdfReportRenderer implements ReportRenderer {
       y -= 4;
     }
 
-    // ---------------------------------------------------------------
-    // AI-assisted analysis
-    // ---------------------------------------------------------------
 
     if (report.input.aiAnalysis) {
       const ai = report.input.aiAnalysis;
@@ -739,21 +692,10 @@ export class PdfReportRenderer implements ReportRenderer {
       }
     }
 
-    // ---------------------------------------------------------------
-    // Disclaimer
-    // ---------------------------------------------------------------
-
     if (report.input.disclaimer) {
       drawSectionHeading("Disclaimer");
       drawCallout(report.input.disclaimer, COLOR.inkSoft);
     }
-
-    // ---------------------------------------------------------------
-    // Footer — drawn last, once per page, now that the final page
-    // count is known, so "page X of Y" is always accurate and the
-    // footer can never collide with content (it lives in the reserved
-    // FOOTER_HEIGHT band every ensureSpace() check already respects).
-    // ---------------------------------------------------------------
 
     const pages = pdf.getPages();
 

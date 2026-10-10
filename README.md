@@ -24,8 +24,8 @@ CodeAudit is two projects in one repository: `server/` (Node/TypeScript/Express 
 ```bash
 cd server
 npm install
-cp .env.example .env   # optional — see server/.env.example for what each variable does
-npm run dev             # starts the API on http://localhost:4000
+cp .env.example .env  
+npm run dev          
 ```
 
 If you want Python execution to work, build the Docker image it runs submissions in:
@@ -41,7 +41,7 @@ In a second terminal:
 ```bash
 cd client
 npm install
-npm run dev              # starts the app on http://localhost:5173 (or similar)
+npm run dev   
 ```
 
 The dev server proxies `/api` requests to `http://localhost:4000` automatically (see `client/vite.config.ts`) — no extra configuration needed for local development.
@@ -51,15 +51,15 @@ Open the URL Vite prints; you should see the CodeAudit home page. If the backend
 ### 3. Run the tests
 
 ```bash
-cd server && npm test        # 95 tests
-cd client && npx vitest run  # 52 tests
+cd server && npm test      
+cd client && npx vitest run 
 ```
 
 ### 4. Production builds (what actually gets deployed)
 
 ```bash
-cd server && npm run build && npm start   # tsc, then node dist/server.js
-cd client && npm run build                # outputs to client/dist/
+cd server && npm run build && npm start 
+cd client && npm run build              
 ```
 
 ## Core Capabilities
@@ -266,6 +266,7 @@ Honestly, as of V1:
 - **`BatchMatrix`'s column headers can truncate indistinguishably** when several submitted files share a long common prefix in their names. The row labels and each cell's hover title remain correct; this is a minor legibility issue with the header row specifically, in a batch with many files.
 - **Monaco's diff editor accessibility is whatever Monaco itself provides.** `CodeDiffView` doesn't attempt to extend or audit it further.
 - **AI-assisted analysis requires a Gemini API key** (`GEMINI_API_KEY`). Without one, it reports itself unavailable with a clear reason — this is by design, not a bug — but it means that capability is untested against the real Gemini API in any automated test (by design — see `docs/decisions.md`, Decision 040, for why the test suite deliberately never calls the real API).
+- - **Gemini's free tier is capped at 20 requests/day** (`gemini-3.5-flash`), not per-minute — this is tighter than CodeAudit's own server-side rate limit (10 requests/minute) and will be the first thing you hit on a real project zip with more than ~20 files. The error surfaces clearly in the UI ("You exceeded your current quota...") rather than failing silently. For real use beyond light testing, a paid Gemini tier is effectively required.
 
 ## Deployment
 
