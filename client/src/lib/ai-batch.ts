@@ -1,5 +1,13 @@
 import type { LanguageInfo } from '../api'
 
+/** Where an item came from: a standalone file picked/dropped directly, or
+ *  one of N files extracted from an uploaded project zip. Grouping by
+ *  `source` is what lets the file list collapse a 200-file zip into one
+ *  "project.zip — 200 files" row instead of flooding the page. */
+export type AiItemSource =
+  | { kind: 'file' }
+  | { kind: 'zip'; zipId: string; zipName: string }
+
 export interface AiBatchItem {
   id: string
   file: File
@@ -7,6 +15,7 @@ export interface AiBatchItem {
   status: 'pending' | 'running' | 'done' | 'error'
   result?: import('../api').AIAnalysisResult
   error?: unknown
+  source: AiItemSource
 }
 
 /** First language (in list order) whose extensions include `ext`. */
@@ -22,13 +31,62 @@ export function keyForFile(file: File): string {
   return `${file.name}-${file.size}-${file.lastModified}`
 }
 
+export interface AiZipGroup {
+  zipId: string
+  zipName: string
+  items: AiBatchItem[]
+}
+
+/** Splits items into their zip groups (in first-seen order) plus whatever
+ *  standalone files were added outside any zip. */
+export function groupItemsBySource(items: AiBatchItem[]): {
+  zipGroups: AiZipGroup[]
+  looseItems: AiBatchItem[]
+} {
+  const zipGroups: AiZipGroup[] = []
+  const zipIndex = new Map<string, AiZipGroup>()
+  const looseItems: AiBatchItem[] = []
+
+  for (const item of items) {
+    if (item.source.kind === 'zip') {
+      let group = zipIndex.get(item.source.zipId)
+      if (!group) {
+        group = { zipId: item.source.zipId, zipName: item.source.zipName, items: [] }
+        zipIndex.set(item.source.zipId, group)
+        zipGroups.push(group)
+      }
+      group.items.push(item)
+    } else {
+      looseItems.push(item)
+    }
+  }
+
+  return { zipGroups, looseItems }
+}
+
+export function groupStatusSummary(items: AiBatchItem[]): {
+  done: number
+  error: number
+  total: number
+} {
+  let done = 0
+  let error = 0
+  for (const item of items) {
+    if (item.status === 'done') done += 1
+    else if (item.status === 'error') error += 1
+  }
+  return { done, error, total: items.length }
+}
+
 export type AiRiskLabel = 'low' | 'medium' | 'high'
 
 export interface AiProjectOverview {
   total: number
   analyzed: number
+  pending: number
   failed: number
   unavailable: number
+  unavailableReason: string | null
   labelCounts: Record<AiRiskLabel, number>
   overallLabel: AiRiskLabel | 'unavailable' | null
   avgIndicator: number | null
@@ -46,8 +104,10 @@ export function computeProjectOverview(items: AiBatchItem[]): AiProjectOverview 
   const observationCounts = new Map<string, number>()
   const flaggedFiles: AiProjectOverview['flaggedFiles'] = []
   let unavailable = 0
+  let unavailableReason: string | null = null
   let failed = 0
   let analyzed = 0
+  let pending = 0
   let indicatorSum = 0
   let indicatorCount = 0
 
@@ -56,11 +116,16 @@ export function computeProjectOverview(items: AiBatchItem[]): AiProjectOverview 
       failed += 1
       continue
     }
-    if (item.status !== 'done' || !item.result) continue
+    if (item.status === 'pending' || item.status === 'running') {
+      pending += 1
+      continue
+    }
+    if (!item.result) continue
     analyzed += 1
 
     if (!item.result.available) {
       unavailable += 1
+      unavailableReason ??= item.result.error ?? null
       continue
     }
 
@@ -106,8 +171,10 @@ export function computeProjectOverview(items: AiBatchItem[]): AiProjectOverview 
   return {
     total: items.length,
     analyzed,
+    pending,
     failed,
     unavailable,
+    unavailableReason,
     labelCounts,
     overallLabel,
     avgIndicator: indicatorCount > 0 ? indicatorSum / indicatorCount : null,

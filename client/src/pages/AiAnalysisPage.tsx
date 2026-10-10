@@ -4,11 +4,14 @@ import { useLanguages } from '../hooks/useLanguages'
 import {
   allExtensions,
   computeProjectOverview,
+  groupItemsBySource,
+  groupStatusSummary,
   keyForFile,
   languageForExtension,
   type AiBatchItem,
+  type AiZipGroup,
 } from '../lib/ai-batch'
-import { extractFilesFromZip, extensionOf } from '../lib/zip'
+import { extractFilesFromZip, extensionOf, MAX_ZIP_FILES } from '../lib/zip'
 import { formatBytes } from '../lib/format'
 import { Section } from '../components/Section'
 import { DropZone } from '../components/DropZone'
@@ -18,6 +21,11 @@ import { AIResultView } from '../components/AIResultView'
 import { AiProjectOverviewCard } from '../components/AiProjectOverviewCard'
 
 const AI_CAPABLE = 'ai'
+// The AI route allows 10 requests/minute server-side (see server/src/config/rate-limit.ts).
+// A project with more files than that will hit a 429 partway through; rather than
+// giving up, the run loop waits out the window and resumes automatically.
+const AI_REQUESTS_PER_MINUTE = 10
+const MAX_RATE_LIMIT_RETRIES = 30
 
 export function AiAnalysisPage() {
   const { state: languagesState } = useLanguages()
@@ -28,46 +36,64 @@ export function AiAnalysisPage() {
 
   const [items, setItems] = useState<AiBatchItem[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [skipped, setSkipped] = useState<string[]>([])
+  const [expandedZips, setExpandedZips] = useState<Set<string>>(new Set())
+  const [notices, setNotices] = useState<string[]>([])
   const [extracting, setExtracting] = useState(false)
   const [running, setRunning] = useState(false)
+  const [cooldown, setCooldown] = useState<{ seconds: number; fileName: string } | null>(null)
   const cancelled = useRef(false)
 
   const addFiles = async (incoming: File[]) => {
-    setSkipped([])
+    setNotices([])
     setExtracting(true)
 
-    const toAdd: File[] = []
-    const newlySkipped: string[] = []
+    const toAdd: Array<{ file: File; source: AiBatchItem['source'] }> = []
+    const newNotices: string[] = []
 
     try {
       for (const file of incoming) {
         if (file.name.toLowerCase().endsWith('.zip')) {
+          const zipId = crypto.randomUUID()
           const extracted = await extractFilesFromZip(file, (path) =>
             extensions.includes(extensionOf(path)),
           )
-          if (extracted.length === 0) {
-            newlySkipped.push(`${file.name} (no supported source files found inside)`)
+          if (extracted.matchedEntries === 0) {
+            newNotices.push(
+              `No supported source files were found inside "${file.name}".`,
+            )
           } else {
-            toAdd.push(...extracted)
+            if (extracted.truncated) {
+              newNotices.push(
+                `"${file.name}" contains ${extracted.matchedEntries} matching files; only the first ${MAX_ZIP_FILES} were loaded.`,
+              )
+            }
+            for (const extractedFile of extracted.files) {
+              toAdd.push({ file: extractedFile, source: { kind: 'zip', zipId, zipName: file.name } })
+            }
+            // A freshly-added zip starts expanded only if it's small enough to skim at a glance.
+            if (extracted.files.length <= 8) {
+              setExpandedZips((current) => new Set(current).add(zipId))
+            }
           }
         } else if (extensions.includes(extensionOf(file.name))) {
-          toAdd.push(file)
+          toAdd.push({ file, source: { kind: 'file' } })
         } else {
-          newlySkipped.push(file.name)
+          newNotices.push(`${file.name} (unsupported file type)`)
         }
       }
     } finally {
       setExtracting(false)
     }
 
-    setSkipped(newlySkipped)
-
     setItems((current) => {
       const existingKeys = new Set(current.map((item) => keyForFile(item.file)))
       const fresh = toAdd
-        .filter((file) => !existingKeys.has(keyForFile(file)))
-        .map((file): AiBatchItem | null => {
+        .filter(({ file }) => !existingKeys.has(keyForFile(file)))
+        .map(({ file, source }): AiBatchItem | null => {
+          if (limits && file.size > limits.maxFileSizeBytes) {
+            newNotices.push(`${file.name} (too large — ${formatBytes(file.size)})`)
+            return null
+          }
           const language = languageForExtension(languages, extensionOf(file.name))
           if (!language) return null
           return {
@@ -75,11 +101,14 @@ export function AiAnalysisPage() {
             file,
             language: language.id,
             status: 'pending',
+            source,
           }
         })
         .filter((item): item is AiBatchItem => item !== null)
       return [...current, ...fresh]
     })
+
+    setNotices(newNotices)
   }
 
   const removeItem = (id: string) => {
@@ -87,43 +116,109 @@ export function AiAnalysisPage() {
     if (selectedId === id) setSelectedId(null)
   }
 
+  const removeGroup = (zipId: string) => {
+    setItems((current) => current.filter((item) => item.source.kind !== 'zip' || item.source.zipId !== zipId))
+    setExpandedZips((current) => {
+      const next = new Set(current)
+      next.delete(zipId)
+      return next
+    })
+  }
+
+  const toggleZip = (zipId: string) => {
+    setExpandedZips((current) => {
+      const next = new Set(current)
+      if (next.has(zipId)) next.delete(zipId)
+      else next.add(zipId)
+      return next
+    })
+  }
+
+  const selectFile = (id: string) => {
+    setSelectedId(id)
+    const item = items.find((it) => it.id === id)
+    if (item && item.source.kind === 'zip') {
+      const zipId = item.source.zipId
+      setExpandedZips((current) => new Set(current).add(zipId))
+    }
+  }
+
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+  const waitOutCooldown = async (seconds: number, fileName: string) => {
+    for (let remaining = seconds; remaining > 0; remaining -= 1) {
+      if (cancelled.current) return
+      setCooldown({ seconds: remaining, fileName })
+      await sleep(1000)
+    }
+    setCooldown(null)
+  }
+
   const run = async () => {
     cancelled.current = false
     setRunning(true)
+    setCooldown(null)
 
-    for (const item of items) {
+    const queue = items.filter((item) => item.status !== 'done')
+
+    for (const queuedItem of queue) {
       if (cancelled.current) break
-      if (item.status === 'done') continue
 
-      setItems((current) =>
-        current.map((it) => (it.id === item.id ? { ...it, status: 'running' } : it)),
-      )
+      let attempt = 0
+      let succeeded = false
 
-      try {
-        const source = await item.file.text()
-        const result: AIAnalysisResult = await runAiAnalysis({ language: item.language, source })
+      while (!succeeded && !cancelled.current) {
+        attempt += 1
         setItems((current) =>
-          current.map((it) => (it.id === item.id ? { ...it, status: 'done', result } : it)),
+          current.map((it) => (it.id === queuedItem.id ? { ...it, status: 'running' } : it)),
         )
-      } catch (error) {
-        if (isAbortError(error)) break
-        setItems((current) =>
-          current.map((it) => (it.id === item.id ? { ...it, status: 'error', error } : it)),
-        )
-        // A rate limit means every remaining file will fail the same way; stop here
-        // instead of burning through them one by one.
-        if (error instanceof ApiError && error.code === 'RATE_LIMITED') break
+
+        try {
+          const source = await queuedItem.file.text()
+          const result: AIAnalysisResult = await runAiAnalysis({
+            language: queuedItem.language,
+            source,
+          })
+          setItems((current) =>
+            current.map((it) => (it.id === queuedItem.id ? { ...it, status: 'done', result } : it)),
+          )
+          succeeded = true
+        } catch (error) {
+          if (isAbortError(error)) {
+            cancelled.current = true
+            break
+          }
+
+          const isRateLimited = error instanceof ApiError && error.code === 'RATE_LIMITED'
+          if (isRateLimited && attempt <= MAX_RATE_LIMIT_RETRIES) {
+            const wait = (error as ApiError).retryAfterSeconds ?? 60
+            await waitOutCooldown(wait, queuedItem.file.name)
+            continue
+          }
+
+          setItems((current) =>
+            current.map((it) => (it.id === queuedItem.id ? { ...it, status: 'error', error } : it)),
+          )
+          break
+        }
       }
     }
 
+    setCooldown(null)
     setRunning(false)
+  }
+
+  const cancelRun = () => {
+    cancelled.current = true
+    setCooldown(null)
   }
 
   const startOver = () => {
     cancelled.current = true
     setItems([])
     setSelectedId(null)
-    setSkipped([])
+    setExpandedZips(new Set())
+    setNotices([])
   }
 
   const selected = items.find((item) => item.id === selectedId) ?? null
@@ -132,7 +227,10 @@ export function AiAnalysisPage() {
   const canRun = items.length > 0 && !running && !extracting
 
   const overview = useMemo(() => computeProjectOverview(items), [items])
+  const { zipGroups, looseItems } = useMemo(() => groupItemsBySource(items), [items])
   const showOverview = items.length > 1 && doneCount + errorCount > 0
+
+  const estimatedMinutes = Math.ceil(items.length / AI_REQUESTS_PER_MINUTE)
 
   if (!limits) return null
 
@@ -146,14 +244,14 @@ export function AiAnalysisPage() {
         </p>
       </div>
 
-      {showOverview && <AiProjectOverviewCard overview={overview} onSelectFile={setSelectedId} />}
+      {showOverview && <AiProjectOverviewCard overview={overview} onSelectFile={selectFile} />}
 
       <Section title="Files">
         <div className="space-y-4">
           <DropZone
             id="ai-files"
             label="Drop source files or a project .zip here, or click to choose"
-            hint={`Supported: ${languages.map((l) => l.label).join(', ')} — or a .zip containing them`}
+            hint={`Supported: ${languages.map((l) => l.label).join(', ')} — or a .zip containing them (up to ${MAX_ZIP_FILES} files per zip)`}
             accept={[...extensions, '.zip']}
             multiple
             disabled={running || extracting}
@@ -162,25 +260,62 @@ export function AiAnalysisPage() {
 
           {extracting && <p className="text-[0.9rem] text-ink-soft">Reading archive…</p>}
 
-          {skipped.length > 0 && (
-            <Alert tone="warning" title="Some files were skipped">
-              {skipped.join(', ')}
+          {notices.length > 0 && (
+            <Alert tone="warning" title="Heads up">
+              <ul className="space-y-0.5">
+                {notices.map((notice, index) => (
+                  <li key={index}>{notice}</li>
+                ))}
+              </ul>
             </Alert>
           )}
 
-          {items.length > 0 && (
-            <ul className="space-y-1.5">
-              {items.map((item) => (
-                <li key={item.id}>
-                  <AiFileRow
-                    item={item}
-                    selected={item.id === selectedId}
-                    onSelect={() => setSelectedId(item.id)}
-                    onRemove={running ? undefined : () => removeItem(item.id)}
-                  />
-                </li>
+          {(zipGroups.length > 0 || looseItems.length > 0) && (
+            <div className="space-y-2">
+              {zipGroups.map((group) => (
+                <AiZipGroupRow
+                  key={group.zipId}
+                  group={group}
+                  expanded={expandedZips.has(group.zipId)}
+                  onToggle={() => toggleZip(group.zipId)}
+                  onRemoveGroup={running ? undefined : () => removeGroup(group.zipId)}
+                  selectedId={selectedId}
+                  onSelectFile={selectFile}
+                  onRemoveFile={running ? undefined : removeItem}
+                />
               ))}
-            </ul>
+
+              {looseItems.length > 0 && (
+                <ul className="space-y-1.5">
+                  {looseItems.map((item) => (
+                    <li key={item.id}>
+                      <AiFileRow
+                        item={item}
+                        selected={item.id === selectedId}
+                        onSelect={() => selectFile(item.id)}
+                        onRemove={running ? undefined : () => removeItem(item.id)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {!running && items.length > AI_REQUESTS_PER_MINUTE && (
+            <p className="text-[0.85rem] text-ink-soft">
+              The server allows {AI_REQUESTS_PER_MINUTE} AI requests per minute, so {items.length} files will take
+              roughly {estimatedMinutes} minute{estimatedMinutes === 1 ? '' : 's'} — CodeAudit waits out the limit
+              and resumes automatically rather than giving up partway through.
+            </p>
+          )}
+
+          {cooldown && (
+            <Alert tone="warning" title="Pausing for the server's rate limit">
+              Resuming in{' '}
+              <span className="font-mono font-semibold tabular-nums">{cooldown.seconds}s</span> — next up:{' '}
+              {cooldown.fileName}
+            </Alert>
           )}
 
           <div className="flex flex-wrap items-center gap-3">
@@ -189,6 +324,11 @@ export function AiAnalysisPage() {
                 ? `Analyzing… (${doneCount + errorCount}/${items.length})`
                 : `Run AI analysis on ${items.length || 0} file${items.length === 1 ? '' : 's'}`}
             </Button>
+            {running && (
+              <Button variant="secondary" onClick={cancelRun}>
+                Stop
+              </Button>
+            )}
             {items.length > 0 && !running && (
               <Button variant="secondary" onClick={startOver}>
                 Start over
@@ -232,6 +372,86 @@ const STATUS_DOT: Record<AiBatchItem['status'], string> = {
   running: 'bg-sky animate-blink',
   done: 'bg-mint',
   error: 'bg-coral',
+}
+
+function AiZipGroupRow({
+  group,
+  expanded,
+  onToggle,
+  onRemoveGroup,
+  selectedId,
+  onSelectFile,
+  onRemoveFile,
+}: {
+  group: AiZipGroup
+  expanded: boolean
+  onToggle: () => void
+  onRemoveGroup?: () => void
+  selectedId: string | null
+  onSelectFile: (id: string) => void
+  onRemoveFile?: (id: string) => void
+}) {
+  const summary = groupStatusSummary(group.items)
+  const finished = summary.done + summary.error >= summary.total
+
+  return (
+    <div className="border-2 border-ink bg-white">
+      <div className="flex items-center gap-3 p-2 pr-3">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={expanded}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          <span
+            aria-hidden="true"
+            className={`shrink-0 font-mono text-sm transition-transform duration-150 ${expanded ? 'rotate-90' : ''}`}
+          >
+            ▸
+          </span>
+          <span aria-hidden="true" className="shrink-0 border-2 border-ink bg-marigold/40 px-1.5 py-0.5 text-[0.75rem] font-bold">
+            ZIP
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-semibold" title={group.zipName}>
+              {group.zipName}
+            </span>
+            <span className="block text-[0.85rem] text-ink-soft">
+              {group.items.length} file{group.items.length === 1 ? '' : 's'}
+              {summary.done + summary.error > 0 &&
+                ` · ${summary.done + summary.error}/${summary.total} ${finished ? 'analyzed' : 'processed'}`}
+              {summary.error > 0 && `, ${summary.error} failed`}
+            </span>
+          </span>
+        </button>
+        {onRemoveGroup && (
+          <button
+            type="button"
+            onClick={onRemoveGroup}
+            aria-label={`Remove all files from ${group.zipName}`}
+            className="grid h-8 w-8 shrink-0 place-items-center border-2 border-ink bg-white text-lg leading-none hover:bg-coral"
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      {expanded && (
+        <ul className="space-y-1.5 border-t-2 border-ink/20 bg-paper/50 p-2">
+          {group.items.map((item) => (
+            <li key={item.id}>
+              <AiFileRow
+                item={item}
+                selected={item.id === selectedId}
+                onSelect={() => onSelectFile(item.id)}
+                onRemove={onRemoveFile ? () => onRemoveFile(item.id) : undefined}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
 }
 
 function AiFileRow({

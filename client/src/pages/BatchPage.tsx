@@ -75,12 +75,16 @@ export function BatchPage() {
           const extracted = await extractFilesFromZip(zip, (path) =>
             language.extensions.includes(extensionOf(path)),
           )
-          if (extracted.length === 0) {
+          if (extracted.matchedEntries === 0) {
             setZipNotice(
               `No ${language.label} files were found inside "${zip.name}". Each submission's folder should contain one ${language.label} file.`,
             )
+          } else if (extracted.truncated) {
+            setZipNotice(
+              `"${zip.name}" contains ${extracted.matchedEntries} ${language.label} files; only the first ${extracted.files.length} were loaded.`,
+            )
           }
-          fromZips = [...fromZips, ...extracted]
+          fromZips = [...fromZips, ...extracted.files]
         }
       } finally {
         setExtracting(false)
