@@ -4,14 +4,6 @@ import { LanguagesContext, type LanguagesState } from '../hooks/languages-contex
 import { ScanningLoader } from './ScanningLoader'
 import { ErrorNotice } from './ErrorNotice'
 
-// A free-tier host (e.g. Render) spins the backend down after idling and
-// takes roughly 30-60s to wake it back up on the next request. During that
-// window the request either hangs until the instance is ready (fine — the
-// loading state just covers it) or the host's own edge proxy returns a
-// transient 502/503/504 before the app has bound its port (not fine on its
-// own — it would otherwise surface as a cold "couldn't reach the server"
-// error on literally every first visit). This retries through that window
-// automatically rather than making the person click "try again" themselves.
 const COLD_START_RETRY_DELAYS_MS = [2000, 3000, 4000, 5000, 6000, 8000, 8000, 8000, 8000, 8000]
 
 function isLikelyColdStart(error: unknown): boolean {
