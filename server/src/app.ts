@@ -19,15 +19,6 @@ import batchRouter from "./routes/batch.routes.js";
 export function createApp(): express.Express {
     const app = express();
 
-    // Render (and most PaaS hosts) put the app behind a single reverse
-    // proxy that sets X-Forwarded-For to the real client IP. Express's
-    // default `trust proxy` is false, so req.ip stays the proxy's own
-    // address — and express-rate-limit refuses to start up in that state
-    // (ERR_ERL_UNEXPECTED_X_FORWARDED_FOR) because it can't tell whether
-    // the forwarded header is trustworthy or spoofed by the client.
-    // Trusting exactly one hop tells Express (and in turn express-rate-limit)
-    // to use the proxy's X-Forwarded-For value as the real client IP,
-    // which is correct for exactly this one-reverse-proxy deployment shape.
     app.set("trust proxy", 1);
 
     app.use(cors(buildCorsOptions()));
