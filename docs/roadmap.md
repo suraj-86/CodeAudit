@@ -842,15 +842,19 @@ Everything below was verified directly — not assumed — in the environment th
 
 **Visual styling pass (Decision 058):** a pure styling refresh — not new scope — requested after the project owner shared a dashboard UI reference for inspiration, with explicit limits: match the reference's button/card polish only, keep the existing page layout, and add no sidebar or user/profile widget. Buttons became pill-shaped, cards and status badges across the app gained rounded corners, and `ResultSummary`/`ModeCard` were redesigned as denser stat tiles — all within the existing ink-border/offset-shadow/display-font identity rather than replacing it. No routes, layout, or backend contract changed. Verified live: full 52/100 client/server test suites pass, and a Playwright pass screenshotted every page plus a full exact-match/structural-similarity run to confirm no functional regression.
 
+**Live deployment (Decisions 059–060):** the project owner deployed the backend to Render and the frontend to Vercel, per the README's Deployment section. Two real deployment-environment bugs surfaced and were fixed directly against the live logs/console rather than guessed at: (1) Render's free tier spins the instance down after ~15 minutes idle, and `LanguagesProvider` (which every page waits on before rendering) now retries through that cold-start window with a "Waking up the server" message instead of surfacing it as an error (Decision 059); (2) Render's reverse proxy sets `X-Forwarded-For` on every request, which crashed every single API call with `ERR_ERL_UNEXPECTED_X_FORWARDED_FOR` until `app.set("trust proxy", 1)` was added (Decision 060) — found directly from the Render deploy logs, not assumed. A third issue (CORS rejecting the Vercel origin) turned out to be a trailing-slash mismatch in the `CORS_ALLOWED_ORIGINS` env var on the project owner's side, not a code bug — the `cors` package matches origins by exact string equality.
+
+Confirmed working live end-to-end by the project owner, against real deployed URLs: exact-match, structural similarity, the Monaco side-by-side diff, and AI-assisted analysis (including a real multi-file TypeScript project with Gemini returning genuine High/Medium risk labels, flagged files, and observations) — not synthetic test fixtures.
+
 ### What's left
 
-1. **An actual deployment**, per the README's new Deployment section (Render for the backend, Vercel for the frontend), followed by the demonstration checklist run against the live URLs rather than `localhost`.
+Nothing. The demonstration checklist (above, in the Deployment section) can still be run as a final formality, but every item on it has now been exercised live against the deployed URLs in the course of this testing.
 
 Exit condition:
 
 The complete CodeAudit V1 workflow is stable, demonstrable, documented, and deployable.
 
-**Status: IN PROGRESS** — everything is verified except the live deployment step, which only the project owner can do (real hosting credentials).
+**Status: COMPLETE** — deployed to Render (backend) + Vercel (frontend) and confirmed working end-to-end against the live URLs.
 
 ---
 
@@ -921,5 +925,7 @@ Phase 13 — Frontend Results & Analysis UX
             COMPLETE (with Phase 5)
 
 Phase 14 — End-to-End Evaluation & Release
-            IN PROGRESS — awaiting Docker execution check and deployment
+            COMPLETE — deployed to Render + Vercel, confirmed working live
 ```
+
+**All 15 phases (0–14) are now complete. CodeAudit V1 is live.**
