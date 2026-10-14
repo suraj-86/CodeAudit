@@ -12,58 +12,6 @@ A user can upload source-code files, select an analysis workflow, and receive re
 
 CodeAudit is intentionally a **tool**, not a classroom-management system.
 
-## Getting Started
-
-CodeAudit is two projects in one repository: `server/` (Node/TypeScript/Express API) and `client/` (React/Vite/TypeScript frontend). Both are required to run the app.
-
-### Prerequisites
-
-- Node.js 20 or later, and npm
-- [Docker](https://docs.docker.com/get-docker/), **only** if you want Python correctness testing to actually run (everything else works without it — see [Known Limitations](#known-limitations))
-
-### 1. Backend
-
-```bash
-cd server
-npm install
-cp .env.example .env  
-npm run dev          
-```
-
-If you want Python execution to work, build the Docker image it runs submissions in:
-
-```bash
-docker build -t codeaudit/python server/runtime/python
-```
-
-### 2. Frontend
-
-In a second terminal:
-
-```bash
-cd client
-npm install
-npm run dev   
-```
-
-The dev server proxies `/api` requests to `http://localhost:4000` automatically (see `client/vite.config.ts`) — no extra configuration needed for local development.
-
-Open the URL Vite prints; you should see the CodeAudit home page. If the backend isn't reachable, the pages that call it (`/check`, `/batch`, `/ai-analysis`) will show a "Couldn't reach the server" error when you try to run a check — that's the signal to confirm the backend is running on port 4000.
-
-### 3. Run the tests
-
-```bash
-cd server && npm test      
-cd client && npx vitest run 
-```
-
-### 4. Production builds (what actually gets deployed)
-
-```bash
-cd server && npm run build && npm start 
-cd client && npm run build              
-```
-
 ## Core Capabilities
 
 ### 1. Code Testing
@@ -264,7 +212,7 @@ When implementation and documentation disagree, the discrepancy should be resolv
 
 Honestly, as of V1:
 
-- **The Python/Docker execution path works, confirmed against a real Docker daemon** (3/3 test cases passed, real captured output matching expected results — see `docs/decisions.md`, Decision 053). It also fails gracefully without Docker, reporting `Execution Unavailable` with the real underlying reason rather than crashing. **The current live deployment does not have Docker available** (Render's standard web service doesn't provide it), so correctness checks on the deployed app report `Execution Unavailable` by design — this is expected, not a bug. To get real Python execution in production, see the Deployment section below.
+- **The Python/Docker execution path has not been verified against a real Docker daemon in this project's own development process.** The sandboxed environment used to build CodeAudit has no Docker available, so execution has only ever been validated at the unit level (`docker-worker.test.ts`, against a fake process runner that simulates Docker's behavior, including timeouts and output limits). The code path is exercised and does fail gracefully without Docker (it reports `Execution Unavailable` with the underlying reason, rather than crashing — this *has* been confirmed end-to-end). What hasn't been confirmed end-to-end is a real, successful Python run. If you have Docker locally, this is the one thing worth testing yourself before relying on it (see the Deployment section below for exact steps).
 - **`BatchMatrix`'s column headers can truncate indistinguishably** when several submitted files share a long common prefix in their names. The row labels and each cell's hover title remain correct; this is a minor legibility issue with the header row specifically, in a batch with many files.
 - **Monaco's diff editor accessibility is whatever Monaco itself provides.** `CodeDiffView` doesn't attempt to extend or audit it further.
 - **AI-assisted analysis requires a Gemini API key** (`GEMINI_API_KEY`). Without one, it reports itself unavailable with a clear reason — this is by design, not a bug — but it means that capability is untested against the real Gemini API in any automated test (by design — see `docs/decisions.md`, Decision 040, for why the test suite deliberately never calls the real API).
@@ -338,10 +286,7 @@ Development should proceed in small, focused increments.
 
 ## Project Status
 
-**CodeAudit V1 is complete and deployed.** All 15 phases (0–14) are done, and the app is live:
-
-- Backend: [https://codeaudit-u8d6.onrender.com](https://codeaudit-u8d6.onrender.com) (Render)
-- Frontend: [https://code-audit-theta.vercel.app](https://code-audit-theta.vercel.app) (Vercel)
+**Current stage:** Phases 0–13 complete, plus Phase 5 (done together with Phase 13 — see `docs/decisions.md`, Decision 045). Phase 14 (End-to-End Evaluation & Release) is the only phase remaining before V1.
 
 - Phase 1 — File Upload & Validation
 - Phase 2 — Exact Match Engine
@@ -356,6 +301,6 @@ Development should proceed in small, focused increments.
 - Phase 11 — Backend API Hardening
 - Phase 12 — Frontend Foundation
 - Phase 13 — Frontend Results & Analysis UX
-- Phase 14 — End-to-End Evaluation & Release
+- Phase 14 — End-to-End Evaluation & Release (in progress)
 
-See `docs/roadmap.md` for what each phase actually delivered and how it was validated, and the [Known Limitations](#known-limitations) section above for what's still worth knowing about the current deployment.
+See `docs/roadmap.md` for what each phase actually delivered and how it was validated, and the [Known Limitations](#known-limitations) section above for what hasn't been verified yet.
